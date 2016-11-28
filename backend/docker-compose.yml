@@ -17,12 +17,10 @@ services:
       links:
         - postgres:postgres
 
-#    nginx_service:
-#      restart: always
-#      build: nginx_service
-#      volumes:
-#        - ./
-#      ports:
-#        - "8080:80"
-#      links:
-#        - django_service:django_service
+    nginx_service:
+      restart: always
+      build: nginx_service
+      ports:
+        - "8080:80"
+      links:
+        - django_service:django
