@@ -224,4 +224,4 @@ crashlytics.properties
 crashlytics-build.properties
 fabric.properties
 
-.sqlite3
+/backend/django_service/mobile_family_budget/db.sqlite3

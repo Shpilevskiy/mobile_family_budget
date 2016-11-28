@@ -1,0 +1,28 @@
+version: "2.0"
+
+services:
+    postgres:
+      image: postgres:9.4.4
+      ports:
+        - "5432:5432"
+      volumes:
+        - ./pgdata/:/var/lib/postgresql/data
+
+    django_service:
+      build: django_service
+      volumes:
+        - ./django_service:/api
+      expose:
+        - "8000"
+      links:
+        - postgres:postgres
+
+#    nginx_service:
+#      restart: always
+#      build: nginx_service
+#      volumes:
+#        - ./
+#      ports:
+#        - "8080:80"
+#      links:
+#        - django_service:django_service
