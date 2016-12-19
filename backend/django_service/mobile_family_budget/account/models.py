@@ -1,5 +1,5 @@
 from django.db import models
-from django.conf import settings
+from django.contrib.auth.models import User
 from django.utils import timezone
 
 from datetime import timedelta
@@ -12,9 +12,9 @@ class RefLink(models.Model):
     activation_count = models.IntegerField(default=5)
 
 
-class Group(models.Model):
+class BudgetGroup(models.Model):
     group_owner = models.OneToOneField(
-        settings.AUTH_USER_MODEL,
+        User,
         on_delete=models.CASCADE,
         related_name='+')
 
@@ -22,7 +22,7 @@ class Group(models.Model):
         RefLink,
         on_delete=models.CASCADE)
 
-    users = models.ManyToManyField(settings.AUTH_USER_MODEL)
+    users = models.ManyToManyField(User)
 
     name = models.CharField(max_length=30)
     login = models.CharField(max_length=30, unique=True)

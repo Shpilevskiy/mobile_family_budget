@@ -1,10 +1,10 @@
 from django.db import models
-from account.models import Group
+from account.models import BudgetGroup
 
 
 class PurchaseList(models.Model):
     name = models.CharField(max_length=30)
-    group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    group = models.ForeignKey(BudgetGroup, on_delete=models.CASCADE)
 
 
 class Purchase(models.Model):
