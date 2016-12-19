@@ -1,6 +1,5 @@
 from django.contrib.auth.models import User
 from django.contrib.auth.models import Group
-from .models import BudgetGroup
 from .models import RefLink
 from rest_framework import serializers
 

@@ -3,8 +3,8 @@ from account.models import BudgetGroup
 
 
 class PurchaseList(models.Model):
-    name = models.CharField(max_length=30)
-    group = models.ForeignKey(BudgetGroup, on_delete=models.CASCADE)
+    name = models.CharField(max_length=30, default="Мой список покупок")
+    budget_group = models.ForeignKey(BudgetGroup, on_delete=models.CASCADE)
 
 
 class Purchase(models.Model):
@@ -13,4 +13,4 @@ class Purchase(models.Model):
     price = models.FloatField()
     current_count = models.IntegerField(default=0)
     status = models.BooleanField(default=False)
-    trade_list = models.ForeignKey(PurchaseList, on_delete=models.CASCADE)
+    purchase_list = models.ForeignKey(PurchaseList, on_delete=models.CASCADE)

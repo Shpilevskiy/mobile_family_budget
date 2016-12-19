@@ -1,7 +1,5 @@
 import json
 
-from django.core import serializers
-
 from django.contrib.auth.models import User
 from django.contrib.auth.models import Group
 from django.http import HttpResponse
@@ -20,6 +18,8 @@ from .serializers import BudgetGroupSerializer
 
 from .models import BudgetGroup
 from .models import RefLink
+
+from purchaseManager.models import PurchaseList
 
 
 class CreateUserView(CreateAPIView):
@@ -71,12 +71,14 @@ class BudgetGroupViewSet(View):
             budget_group.save()
             budget_group.users.add(request.user)
 
+            purchase_list = PurchaseList(budget_group=budget_group)
+            purchase_list.save()
+
             return HttpResponse(json.dumps({"status": "Группа успешно создана"}))
 
     def get(self, request):
         if request.user.is_authenticated():
             groups = BudgetGroup.objects.filter(users=request.user)
-            [print(BudgetGroupSerializer(group).data) for group in groups]
             return HttpResponse(json.dumps({
                 "Groups": [BudgetGroupSerializer(group).data for group in groups]
             }))
