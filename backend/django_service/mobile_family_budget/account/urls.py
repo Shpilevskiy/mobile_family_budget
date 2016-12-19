@@ -4,16 +4,17 @@ from rest_framework import routers
 
 from .views import UserViewSet
 from .views import GroupViewSet
+from .views import CreateUserView
 
+from .views import BudgetGroupViewSet
 
-router = routers.DefaultRouter()
-router.register(r'users', UserViewSet)
-router.register(r'groups', GroupViewSet)
+userRouter = routers.DefaultRouter()
+userRouter.register(r'users', UserViewSet)
+userRouter.register(r'groups', GroupViewSet)
 
-
-# Wire up our API using automatic URL routing.
-# Additionally, we include login URLs for the browsable API.
 urlpatterns = [
-    url(r'^user/', include(router.urls)),
-    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework'))
+    url(r'^user/', include(userRouter.urls)),
+    url(r'^budget-group/', BudgetGroupViewSet.as_view(), name='new budget group'),
+    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+    url('^api-register/$', CreateUserView.as_view()),
 ]
