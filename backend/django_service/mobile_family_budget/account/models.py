@@ -6,7 +6,7 @@ from datetime import timedelta
 
 
 class RefLink(models.Model):
-    link = models.URLField()
+    link = models.CharField(max_length=120)
     creation_date = models.DateField(default=timezone.now())
     expire_date = models.DateField(default=timezone.now() + timedelta(days=10))
     activation_count = models.IntegerField(default=5)

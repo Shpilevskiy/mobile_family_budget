@@ -12,8 +12,8 @@ class GroupUserSerializer(serializers.Serializer):
 class BudgetGroupSerializer(serializers.Serializer):
     name = serializers.CharField()
     login = serializers.CharField()
-    group_owner = GroupUserSerializer()
-    users = GroupUserSerializer(read_only=True, many=True)
+    # group_owner = GroupUserSerializer()
+    # users = GroupUserSerializer(read_only=True, many=True)
 
 
 

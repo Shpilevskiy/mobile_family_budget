@@ -129,3 +129,8 @@ REST_FRAMEWORK = {
     ),
     'PAGE_SIZE': 10
 }
+
+ALLOWED_HOSTS = [
+    '192.168.0.103'
+]
+CSRF_COOKIE_SECURE = False
