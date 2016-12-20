@@ -11,3 +11,4 @@ class PurchaseSerializer(serializers.Serializer):
     price = serializers.FloatField()
     current_count = serializers.IntegerField()
     status = serializers.BooleanField()
+    id = serializers.IntegerField()
