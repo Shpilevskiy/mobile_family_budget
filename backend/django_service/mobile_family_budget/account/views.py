@@ -16,6 +16,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework import permissions
 from rest_framework import viewsets
 from rest_framework import status
+from rest_framework import generics
 from rest_framework.generics import CreateAPIView
 from rest_framework.response import Response
 
@@ -51,8 +52,9 @@ class Registration(View):
         password = data['password']
         user = User.objects.all().filter(username=username)
         if user:
-            return HttpResponse(json.dumps({"error": "Логин уже занят"}))
+            return HttpResponse(json.dumps({"error": "user not found"}))
         User.objects.create_user(username=username, password=password)
+        print("!")
         return HttpResponse(json.dumps({"status": "success"}))
 
 
@@ -77,7 +79,7 @@ class AddUserToGroup(View):
                 return HttpResponse(json.dumps({"error": "Ссылка инвалидна"}))
             group.users.add(request.user)
             group.save()
-            return HttpResponse(json.dumps({"Status": "user added to group"}))
+            return HttpResponse(json.dumps({"Status": "Группа добавлена"}))
 
     def get(self, request):
         if request.user.is_authenticated():
@@ -87,15 +89,12 @@ class AddUserToGroup(View):
             else:
                 return HttpResponse(json.dumps({"error": "Группа не найдена"}))
 
-@method_decorator(csrf_exempt, name='dispatch')
+
 class CreateUserView(CreateAPIView):
     model = User.objects.all()
-    permission_classes = [
-        permissions.AllowAny  # Or anon users can't register
-    ]
+    permission_classes = (permissions.AllowAny,)
     serializer_class = UserSerializer
 
-    @csrf_exempt
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -109,59 +108,65 @@ class CreateUserView(CreateAPIView):
         )
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class UserViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint that allows users to be viewed or edited.
-    """
-    queryset = User.objects.all().order_by('-date_joined')
-    serializer_class = UserSerializer
+class BudgetGroupListView(generics.ListCreateAPIView):
+    permission_classes = (permissions.IsAuthenticated,)
+    serializer_class = BudgetGroupSerializer
 
+    def get_queryset(self, **kwargs):
+        user_id = self.request.user.id
+        return BudgetGroup.objects.participant(user_id, **kwargs)
 
-@method_decorator(csrf_exempt, name='dispatch')
-class GroupViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint that allows groups to be viewed or edited.
-    """
-    queryset = Group.objects.all()
-    serializer_class = GroupSerializer
-
-
-@method_decorator(csrf_exempt, name='dispatch')
-class BudgetGroupViewSet(View):
-    def post(self, request):
-        if request.user.is_authenticated():
-            data = json.loads(request.body.decode())
-            name = data['name']
-            group_login = data['login']
-            if BudgetGroup.objects.filter(login=group_login):
-                return HttpResponse(json.dumps({"error": "Данный логин уже используется"}))
-
-            budget_group = BudgetGroup(name=name, login=group_login, group_owner=request.user)
-            budget_group.save()
-            budget_group.users.add(request.user)
-
-            invite_link = RefLink(
-                link=str(BudgetGroup.objects.get(login=group_login).id) + str(uuid.uuid1().hex))
-            invite_link.save()
-            budget_group.invite_link = invite_link
-            budget_group.save()
-            purchase_list = PurchaseList(budget_group=budget_group)
-            purchase_list.save()
-
-            print("!!!")
-            return HttpResponse(json.dumps({"status": "Группа успешно создана"}))
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieve user groups
+        """
+        if request.GET.get('group_id'):
+            queryset = self.get_queryset(**request.GET.dict())
         else:
-            return HttpResponse(json.dumps({"Error": "is not authenticated"}))
+            queryset = self.get_queryset()
+        serializer = BudgetGroupSerializer(queryset, many=True)
+        return Response(serializer.data)
 
-    def get(self, request):
-        if request.user.is_authenticated():
-            groups = BudgetGroup.objects.filter(users=request.user)
-            return HttpResponse(json.dumps({
-                "Groups": [BudgetGroupSerializer(group).data for group in groups]
-            }))
+    def post(self, request, *args, **kwargs):
+        """
+        Create new group
+        """
+        return super().post(request, *args, **kwargs)
 
-            # def update(self, requset):
+        # @method_decorator(csrf_exempt, name='dispatch')
+        # class BudgetGroupViewSet(generics.):
+        # def post(self, request):
+        #     if request.user.is_authenticated():
+        #         data = json.loads(request.body.decode())
+        #         name = data['name']
+        #         group_login = data['login']
+        #         if BudgetGroup.objects.filter(login=group_login):
+        #             return HttpResponse(json.dumps({"error": "Данный логин уже используется"}))
+        #
+        #         budget_group = BudgetGroup(name=name, login=group_login, group_owner=request.user)
+        #         budget_group.save()
+        #         budget_group.users.add(request.user)
+        #
+        #         invite_link = RefLink(
+        #             link=str(BudgetGroup.objects.get(login=group_login).id) + str(uuid.uuid1().hex))
+        #         invite_link.save()
+        #         budget_group.invite_link = invite_link
+        #         budget_group.save()
+        #         purchase_list = PurchaseList(budget_group=budget_group)
+        #         purchase_list.save()
+        #
+        #         return HttpResponse(json.dumps({"status": "Группа успешно создана"}))
+        #     else:
+        #         return HttpResponse(json.dumps({"Error": "is not authenticated"}))
+        #
+        # def get(self, request):
+        #     if request.user.is_authenticated():
+        #         groups = BudgetGroup.objects.filter(users=request.user)
+        #         return HttpResponse(json.dumps({
+        #             "Groups": [BudgetGroupSerializer(group).data for group in groups]
+        #         }))
+
+        # def update(self, requset):
 
 
 @method_decorator(csrf_exempt, name='dispatch')

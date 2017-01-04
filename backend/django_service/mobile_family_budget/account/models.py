@@ -15,6 +15,14 @@ class RefLink(models.Model):
         return str(self.link)
 
 
+class BudgetGroupManager(models.Manager):
+
+    def participant(self, user_id, **kwargs):
+        if kwargs:
+            return BudgetGroup.objects.filter(users__id=user_id, id=kwargs.get('group_id'))
+        return BudgetGroup.objects.filter(users__id=user_id)
+
+
 class BudgetGroup(models.Model):
     group_owner = models.ForeignKey(
         User,
@@ -30,3 +38,5 @@ class BudgetGroup(models.Model):
 
     name = models.CharField(max_length=30)
     login = models.CharField(max_length=30, unique=True)
+
+    objects = BudgetGroupManager()

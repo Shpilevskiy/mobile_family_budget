@@ -25,8 +25,7 @@ SECRET_KEY = 'x8=aasu($c5hhnvyxj!rdhadsmha-ep#ude^$azymh2(h0g8@-'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = ['*',]
 
 # Application definition
 
@@ -130,7 +129,5 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 10
 }
 
-ALLOWED_HOSTS = [
-    '192.168.0.103'
-]
+
 CSRF_COOKIE_SECURE = False

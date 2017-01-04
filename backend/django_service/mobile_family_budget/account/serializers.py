@@ -8,13 +8,11 @@ class GroupUserSerializer(serializers.Serializer):
     username = serializers.CharField()
 
 
-
 class BudgetGroupSerializer(serializers.Serializer):
     name = serializers.CharField()
     login = serializers.CharField()
-    # group_owner = GroupUserSerializer()
-    # users = GroupUserSerializer(read_only=True, many=True)
-
+    group_owner = GroupUserSerializer()
+    users = GroupUserSerializer(read_only=True, many=True)
 
 
 class RefLinkSerializer(serializers.HyperlinkedModelSerializer):
@@ -33,7 +31,7 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'password', 'groups', 'budget_group', 'invite_link')
+        fields = ('username', 'email', 'password', 'groups', 'budget_group')
         write_only_fields = ('password',)
         read_only_fields = ('is_staff', 'is_superuser', 'is_active', 'date_joined')
 
