@@ -11,16 +11,18 @@ from .views import Registration
 from .views import AddUserToGroup
 
 # from .views import BudgetGroupViewSet
-from .views import BudgetGroupListView
+from .views import (
+    BudgetGroupListView,
+    BudgetGroupUsersListView
+)
 
 # userRouter = routers.DefaultRouter()
 # userRouter.register(r'users', UserViewSet)
 # userRouter.register(r'groups', GroupViewSet)
 
 urlpatterns = [
-    url(r'^budget-groups/(?P<group_id>\d+)/', BudgetGroupListView.as_view()),
+    url(r'^budget-groups/(?P<group_id>[0-9]+)/users/', BudgetGroupUsersListView.as_view()),
     url(r'^budget-groups/', BudgetGroupListView.as_view()),
-
     # url(r'^user/', include(userRouter.urls)),
     # url(r'^budget-group/', BudgetGroupViewSet.as_view(), name='new budget group'),
     # url(r'^add-to-group/', AddUserToGroup.as_view(), name='add to group'),

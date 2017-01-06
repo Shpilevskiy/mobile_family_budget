@@ -20,13 +20,18 @@ from rest_framework import generics
 from rest_framework.generics import CreateAPIView
 from rest_framework.response import Response
 
-from .serializers import UserSerializer
-from .serializers import GroupSerializer
-from .serializers import RefLinkSerializer
-from .serializers import BudgetGroupSerializer
+from .serializers import (
+    UserSerializer,
+    GroupUserSerializer,
+    RefLinkSerializer,
+    BudgetGroupSerializer,
+    BudgetGroupCreateSerializer,
+)
 
 from .models import BudgetGroup
 from .models import RefLink
+
+from .permissions import IsGroupMember
 
 from purchaseManager.models import PurchaseList
 
@@ -93,7 +98,7 @@ class AddUserToGroup(View):
 class CreateUserView(CreateAPIView):
     model = User.objects.all()
     permission_classes = (permissions.AllowAny,)
-    serializer_class = UserSerializer
+    serializer_class = GroupUserSerializer
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -108,30 +113,53 @@ class CreateUserView(CreateAPIView):
         )
 
 
+class BudgetGroupUsersListView(generics.ListAPIView):
+    permission_classes = (permissions.IsAuthenticated, IsGroupMember)
+    serializer_class = GroupUserSerializer
+    lookup_url_kwarg = 'group_id'
+
+    def get_queryset(self):
+        user_id = self.request.user.id
+        group_id = self.kwargs[self.lookup_url_kwarg]
+        group = BudgetGroup.objects.get(id=group_id)
+        return group.users.all()
+
+
 class BudgetGroupListView(generics.ListCreateAPIView):
     permission_classes = (permissions.IsAuthenticated,)
-    serializer_class = BudgetGroupSerializer
 
-    def get_queryset(self, **kwargs):
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return BudgetGroupCreateSerializer
+        return BudgetGroupSerializer
+
+    def get_queryset(self, group_id=None):
         user_id = self.request.user.id
-        return BudgetGroup.objects.participant(user_id, **kwargs)
+        return BudgetGroup.objects.participant(user_id, group_id)
 
     def get(self, request, *args, **kwargs):
         """
         Retrieve user groups
         """
-        if request.GET.get('group_id'):
-            queryset = self.get_queryset(**request.GET.dict())
+        print(kwargs)
+        if 'group_id' in request.GET:
+            queryset = self.get_queryset(group_id=request.GET.get('group_id'))
         else:
             queryset = self.get_queryset()
-        serializer = BudgetGroupSerializer(queryset, many=True)
+        serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
     def post(self, request, *args, **kwargs):
         """
         Create new group
         """
-        return super().post(request, *args, **kwargs)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        group_name = serializer.validated_data.get("name")
+        # serializer.create(serializer.validated_data, user=request.user.id)
+        # self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(status=status.HTTP_201_CREATED, headers=headers)
 
         # @method_decorator(csrf_exempt, name='dispatch')
         # class BudgetGroupViewSet(generics.):

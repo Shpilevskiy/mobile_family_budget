@@ -16,10 +16,9 @@ class RefLink(models.Model):
 
 
 class BudgetGroupManager(models.Manager):
-
-    def participant(self, user_id, **kwargs):
-        if kwargs:
-            return BudgetGroup.objects.filter(users__id=user_id, id=kwargs.get('group_id'))
+    def participant(self, user_id, group_id=None):
+        if group_id:
+            return BudgetGroup.objects.filter(users__id=user_id, id=group_id)
         return BudgetGroup.objects.filter(users__id=user_id)
 
 
@@ -40,3 +39,12 @@ class BudgetGroup(models.Model):
     login = models.CharField(max_length=30, unique=True)
 
     objects = BudgetGroupManager()
+
+    def is_member(self, user):
+        """
+        Returns whether the given user instance
+        is the member of the current group
+        :param user:
+        :return:
+        """
+        return self.users.filter(id=user.id).exists()
