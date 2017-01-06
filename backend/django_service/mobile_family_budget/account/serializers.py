@@ -5,15 +5,11 @@ from .models import BudgetGroup
 from rest_framework import serializers
 
 
-class GroupUserSerializer(serializers.ModelSerializer):
+class BudgetGroupUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('username', 'email', )
-
-
-# class GroupUserSerializer(serializers.Serializer):
-#     username = serializers.CharField()
+        fields = ('username', 'email')
 
 
 class RefLinkSerializer(serializers.HyperlinkedModelSerializer):
@@ -26,22 +22,13 @@ class RefLinkSerializer(serializers.HyperlinkedModelSerializer):
         read_only_fields = ('creation_date', 'link')
 
 
-# class BudgetGroupUsersSerializers(serializers.ListSerializer):
-#     users = UserSerializer(read_only=True, many=True)
-    #
-    # class Meta:
-    #     model=BudgetGroup
-    #     fields = ('users',)
-
-
 class BudgetGroupSerializer(serializers.HyperlinkedModelSerializer):
-    group_owner = GroupUserSerializer()
-    users = GroupUserSerializer(read_only=True, many=True)
+    group_owner = BudgetGroupUserSerializer()
     invite_link = RefLinkSerializer()
 
     class Meta:
         model = BudgetGroup
-        fields = ('name', 'login', 'group_owner', 'users', 'invite_link')
+        fields = ('id', 'name', 'group_owner', 'invite_link')
 
     # def create(self, validated_data):
     #     # budget_group = BudgetGroup(
@@ -51,11 +38,11 @@ class BudgetGroupSerializer(serializers.HyperlinkedModelSerializer):
     #     # )
 
 
-class UserSerializer(serializers.HyperlinkedModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'password', 'groups', )
+        fields = ('username', 'email', 'password')
         write_only_fields = ('password',)
         read_only_fields = ('is_staff', 'is_superuser', 'is_active', 'date_joined')
 
@@ -70,10 +57,17 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
         return user
 
 
-class BudgetGroupCreateSerializer(serializers.Serializer):
-
+class BudgetGroupCreateSerializer(serializers.ModelSerializer):
     name = serializers.CharField(max_length=120)
 
     class Meta:
         model = BudgetGroup
         fields = ('name', )
+
+    def create(self, validated_data):
+        budget_group = BudgetGroup(
+            group_owner=validated_data['owner'],
+            name=validated_data['name']
+        )
+        budget_group.save()
+        return budget_group

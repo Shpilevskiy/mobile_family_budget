@@ -7,9 +7,9 @@ from datetime import timedelta
 
 class RefLink(models.Model):
     link = models.CharField(max_length=120)
-    creation_date = models.DateField(default=timezone.now())
+    creation_date = models.DateField(default=timezone.now)
     expire_date = models.DateField(default=timezone.now() + timedelta(days=10))
-    activation_count = models.IntegerField(default=5)
+    activation_count = models.IntegerField(default=3)
 
     def __str__(self):
         return str(self.link)
@@ -36,7 +36,6 @@ class BudgetGroup(models.Model):
     users = models.ManyToManyField(User)
 
     name = models.CharField(max_length=30)
-    login = models.CharField(max_length=30, unique=True)
 
     objects = BudgetGroupManager()
 
@@ -44,7 +43,5 @@ class BudgetGroup(models.Model):
         """
         Returns whether the given user instance
         is the member of the current group
-        :param user:
-        :return:
         """
         return self.users.filter(id=user.id).exists()
