@@ -1,12 +1,12 @@
 from django.contrib.auth.models import User
-from django.contrib.auth.models import Group
+from rest_framework.validators import UniqueValidator, UniqueTogetherValidator
+
 from .models import RefLink
 from .models import BudgetGroup
 from rest_framework import serializers
 
 
 class BudgetGroupUserSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = User
         fields = ('username', 'email')
@@ -30,16 +30,8 @@ class BudgetGroupSerializer(serializers.HyperlinkedModelSerializer):
         model = BudgetGroup
         fields = ('id', 'name', 'group_owner', 'invite_link')
 
-    # def create(self, validated_data):
-    #     # budget_group = BudgetGroup(
-    #     #     name=validated_data['name'],
-    #     #     login=validated_data['login'],
-    #     #     users=validated_data['users'],
-    #     # )
-
 
 class UserSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = User
         fields = ('username', 'email', 'password')
@@ -62,7 +54,7 @@ class BudgetGroupCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = BudgetGroup
-        fields = ('name', )
+        fields = ('name',)
 
     def create(self, validated_data):
         budget_group = BudgetGroup(
@@ -71,3 +63,16 @@ class BudgetGroupCreateSerializer(serializers.ModelSerializer):
         )
         budget_group.save()
         return budget_group
+
+
+class AddUserToGroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RefLink
+        fields = ('link',)
+
+        validators = [
+            UniqueTogetherValidator(
+                queryset=RefLink.objects.all(),
+                fields=('link',)
+            )
+        ]

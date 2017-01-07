@@ -1,20 +1,10 @@
-import json
-
 import uuid
 
 from django.contrib.auth.models import User
-from django.contrib.auth.models import Group
-from django.contrib.auth import authenticate, login
 
-from django.http import HttpResponse
-from django.http import StreamingHttpResponse
-from django.http import HttpResponseRedirect
-from django.utils.decorators import method_decorator
-from django.views import View
-from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
 
 from rest_framework import permissions
-from rest_framework import viewsets
 from rest_framework import status
 from rest_framework import generics
 from rest_framework.generics import CreateAPIView
@@ -25,6 +15,7 @@ from .serializers import (
     BudgetGroupUserSerializer,
     BudgetGroupSerializer,
     BudgetGroupCreateSerializer,
+    AddUserToGroupSerializer
 )
 
 from .models import BudgetGroup
@@ -35,36 +26,36 @@ from .permissions import IsGroupMember
 from purchaseManager.models import PurchaseList
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class AddUserToGroup(View):
-    def get_user_group(self, budget_group, user):
-        budget_group = BudgetGroup.objects.all().get(login=budget_group)
-        if user in budget_group.users.all():
-            return budget_group
-        return None
-
-    def post(self, request):
-        if request.user.is_authenticated():
-            print(request.body)
-            data = json.loads(request.body.decode())
-            link = data['link']
-
-            try:
-                group = BudgetGroup.objects.get(invite_link=RefLink.objects.get(link=link))
-            except RefLink.DoesNotExist:
-                print("error")
-                return HttpResponse(json.dumps({"error": "Ссылка инвалидна"}))
-            group.users.add(request.user)
-            group.save()
-            return HttpResponse(json.dumps({"Status": "Группа добавлена"}))
-
-    def get(self, request):
-        if request.user.is_authenticated():
-            group = self.get_user_group(request.GET.get('budget_group_login'), request.user)
-            if group:
-                return HttpResponse(json.dumps({"invite_link": group.invite_link.link}))
-            else:
-                return HttpResponse(json.dumps({"error": "Группа не найдена"}))
+# @method_decorator(csrf_exempt, name='dispatch')
+# class AddUserToGroup(View):
+#     def get_user_group(self, budget_group, user):
+#         budget_group = BudgetGroup.objects.all().get(login=budget_group)
+#         if user in budget_group.users.all():
+#             return budget_group
+#         return None
+#
+#     def post(self, request):
+#         if request.user.is_authenticated():
+#             print(request.body)
+#             data = json.loads(request.body.decode())
+#             link = data['link']
+#
+#             try:
+#                 group = BudgetGroup.objects.get(invite_link=RefLink.objects.get(link=link))
+#             except RefLink.DoesNotExist:
+#                 print("error")
+#                 return HttpResponse(json.dumps({"error": "Ссылка инвалидна"}))
+#             group.users.add(request.user)
+#             group.save()
+#             return HttpResponse(json.dumps({"Status": "Группа добавлена"}))
+#
+#     def get(self, request):
+#         if request.user.is_authenticated():
+#             group = self.get_user_group(request.GET.get('budget_group_login'), request.user)
+#             if group:
+#                 return HttpResponse(json.dumps({"invite_link": group.invite_link.link}))
+#             else:
+#                 return HttpResponse(json.dumps({"error": "Группа не найдена"}))
 
 
 class CreateUserView(CreateAPIView):
@@ -94,6 +85,33 @@ class BudgetGroupUsersListView(generics.ListAPIView):
         group_id = self.kwargs[self.lookup_url_kwarg]
         group = BudgetGroup.objects.get(id=group_id)
         return group.users.all()
+
+
+class AddUserUpdateView(generics.UpdateAPIView):
+    permission_classes = (permissions.IsAuthenticated,)
+    serializer_class = AddUserToGroupSerializer
+
+    def get_error_response(self, message='invalid link'):
+        return Response({'error': '{}'.format(message)}, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        try:
+            ref_link = RefLink.objects.get(link=request.POST.get('link'))
+            if ref_link.activation_count == 0 or timezone.datetime.date(timezone.now()) >= ref_link.expire_date:
+                return self.get_error_response('link was outdated')
+            try:
+                budget_group = BudgetGroup.objects.get(invite_link=ref_link)
+                if request.user in budget_group.users.all():
+                    return self.get_error_response()
+                budget_group.users.add(request.user)
+                budget_group.save()
+                ref_link.activation_count -= 1
+                ref_link.save()
+                return Response({'status': 'user successfully added to group {}'.format(budget_group.name)}, status=status.HTTP_200_OK)
+            except BudgetGroup.DoesNotExist:
+                return self.get_error_response()
+        except RefLink.DoesNotExist:
+            return self.get_error_response()
 
 
 class BudgetGroupListView(generics.ListCreateAPIView):

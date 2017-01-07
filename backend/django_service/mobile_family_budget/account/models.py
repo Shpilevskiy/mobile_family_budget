@@ -6,7 +6,7 @@ from datetime import timedelta
 
 
 class RefLink(models.Model):
-    link = models.CharField(max_length=120)
+    link = models.CharField(max_length=120, unique=True)
     creation_date = models.DateField(default=timezone.now)
     expire_date = models.DateField(default=timezone.now() + timedelta(days=10))
     activation_count = models.IntegerField(default=3)
@@ -30,8 +30,7 @@ class BudgetGroup(models.Model):
 
     invite_link = models.OneToOneField(
         RefLink,
-        on_delete=models.CASCADE,
-        null=True, blank=True)
+        on_delete=models.CASCADE, unique=True)
 
     users = models.ManyToManyField(User)
 
