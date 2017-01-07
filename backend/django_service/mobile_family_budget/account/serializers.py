@@ -42,7 +42,7 @@ class BudgetGroupSerializer(serializers.HyperlinkedModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('username', 'email', 'password')
+        fields = ('username', 'email', 'password', 'first_name')
         write_only_fields = ('password',)
         read_only_fields = ('is_staff', 'is_superuser', 'is_active', 'date_joined')
 

@@ -27,36 +27,6 @@ from .permissions import IsGroupMember
 from purchaseManager.models import PurchaseList
 
 
-# @method_decorator(csrf_exempt, name='dispatch')
-# class AddUserToGroup(View):
-#     def get_user_group(self, budget_group, user):
-#         budget_group = BudgetGroup.objects.all().get(login=budget_group)
-#         if user in budget_group.users.all():
-#             return budget_group
-#         return None
-#
-#     def post(self, request):
-#         if request.user.is_authenticated():
-#             print(request.body)
-#             data = json.loads(request.body.decode())
-#             link = data['link']
-#
-#             try:
-#                 group = BudgetGroup.objects.get(invite_link=RefLink.objects.get(link=link))
-#             except RefLink.DoesNotExist:
-#                 print("error")
-#                 return HttpResponse(json.dumps({"error": "Ссылка инвалидна"}))
-#             group.users.add(request.user)
-#             group.save()
-#             return HttpResponse(json.dumps({"Status": "Группа добавлена"}))
-#
-#     def get(self, request):
-#         if request.user.is_authenticated():
-#             group = self.get_user_group(request.GET.get('budget_group_login'), request.user)
-#             if group:
-#                 return HttpResponse(json.dumps({"invite_link": group.invite_link.link}))
-#             else:
-#                 return HttpResponse(json.dumps({"error": "Группа не найдена"}))
 def get_error_response(message='invalid link'):
     return Response({'error': '{}'.format(message)}, status=status.HTTP_400_BAD_REQUEST)
 
