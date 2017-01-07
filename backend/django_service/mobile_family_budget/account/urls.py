@@ -7,11 +7,13 @@ from .views import CreateUserView
 from .views import (
     BudgetGroupListView,
     BudgetGroupUsersListView,
-    AddUserUpdateView
+    AddUserUpdateView,
+    RefLinkRetrieveUpdateView
 )
 
 urlpatterns = [
     url(r'^budget-groups/(?P<group_id>[0-9]+)/users/', BudgetGroupUsersListView.as_view()),
+    url(r'^budget-groups/(?P<group_id>[0-9]+)/invite_link/', RefLinkRetrieveUpdateView.as_view()),
     url(r'^budget-groups/add-user/', AddUserUpdateView.as_view()),
     url(r'^budget-groups/', BudgetGroupListView.as_view()),
 

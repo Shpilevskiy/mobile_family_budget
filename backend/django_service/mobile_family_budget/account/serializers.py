@@ -12,7 +12,10 @@ class BudgetGroupUserSerializer(serializers.ModelSerializer):
         fields = ('username', 'email')
 
 
-class RefLinkSerializer(serializers.HyperlinkedModelSerializer):
+class RefLinkSerializer(serializers.ModelSerializer):
+    expire_date = serializers.DateField()
+    activation_count = serializers.IntegerField(min_value=0)
+
     class Meta:
         model = RefLink
         fields = ('link',
@@ -21,14 +24,19 @@ class RefLinkSerializer(serializers.HyperlinkedModelSerializer):
                   'activation_count',)
         read_only_fields = ('creation_date', 'link')
 
+    def update(self, instance, validated_data):
+        instance.expire_date = validated_data.get('expire_date', instance.expire_date)
+        instance.activation_count = validated_data.get('activation_count', instance.activation_count)
+        instance.save()
+        return instance
+
 
 class BudgetGroupSerializer(serializers.HyperlinkedModelSerializer):
     group_owner = BudgetGroupUserSerializer()
-    invite_link = RefLinkSerializer()
 
     class Meta:
         model = BudgetGroup
-        fields = ('id', 'name', 'group_owner', 'invite_link')
+        fields = ('id', 'name', 'group_owner')
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -69,10 +77,3 @@ class AddUserToGroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = RefLink
         fields = ('link',)
-
-        validators = [
-            UniqueTogetherValidator(
-                queryset=RefLink.objects.all(),
-                fields=('link',)
-            )
-        ]

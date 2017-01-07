@@ -15,7 +15,8 @@ from .serializers import (
     BudgetGroupUserSerializer,
     BudgetGroupSerializer,
     BudgetGroupCreateSerializer,
-    AddUserToGroupSerializer
+    AddUserToGroupSerializer,
+    RefLinkSerializer
 )
 
 from .models import BudgetGroup
@@ -56,6 +57,8 @@ from purchaseManager.models import PurchaseList
 #                 return HttpResponse(json.dumps({"invite_link": group.invite_link.link}))
 #             else:
 #                 return HttpResponse(json.dumps({"error": "Группа не найдена"}))
+def get_error_response(message='invalid link'):
+    return Response({'error': '{}'.format(message)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CreateUserView(CreateAPIView):
@@ -91,27 +94,56 @@ class AddUserUpdateView(generics.UpdateAPIView):
     permission_classes = (permissions.IsAuthenticated,)
     serializer_class = AddUserToGroupSerializer
 
-    def get_error_response(self, message='invalid link'):
-        return Response({'error': '{}'.format(message)}, status=status.HTTP_400_BAD_REQUEST)
-
     def update(self, request, *args, **kwargs):
+        """
+        Add user to group by invite link
+        """
         try:
             ref_link = RefLink.objects.get(link=request.POST.get('link'))
             if ref_link.activation_count == 0 or timezone.datetime.date(timezone.now()) >= ref_link.expire_date:
-                return self.get_error_response('link was outdated')
+                return get_error_response('link was outdated')
             try:
                 budget_group = BudgetGroup.objects.get(invite_link=ref_link)
                 if request.user in budget_group.users.all():
-                    return self.get_error_response()
+                    return get_error_response()
                 budget_group.users.add(request.user)
                 budget_group.save()
                 ref_link.activation_count -= 1
                 ref_link.save()
-                return Response({'status': 'user successfully added to group {}'.format(budget_group.name)}, status=status.HTTP_200_OK)
+                return Response({'status': 'user successfully added to group {}'.format(budget_group.name)},
+                                status=status.HTTP_200_OK)
             except BudgetGroup.DoesNotExist:
-                return self.get_error_response()
+                return get_error_response()
         except RefLink.DoesNotExist:
-            return self.get_error_response()
+            return get_error_response()
+
+
+class RefLinkRetrieveUpdateView(generics.RetrieveUpdateAPIView):
+    permission_classes = (permissions.IsAuthenticated, IsGroupMember)
+    serializer_class = RefLinkSerializer
+
+    def get_queryset(self):
+        return RefLink.objects.get(
+            budgetgroup=BudgetGroup.objects.get(id=self.kwargs.get('group_id')))
+
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieve invite link for budget group
+        """
+        queryset = self.get_queryset()
+        return Response(self.get_serializer(queryset).data)
+
+    def update(self, request, *args, **kwargs):
+        """
+        update expire date or activation count of invite link
+        """
+        serializer = self.get_serializer(self.get_queryset(), data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'status': 'Invite link data was successfully changed',
+                         'expire_date': '{}'.format(serializer.validated_data.get('expire_date')),
+                         'activation_count': '{}'.format(serializer.validated_data.get('activation_count'))
+                         }, status=status.HTTP_200_OK)
 
 
 class BudgetGroupListView(generics.ListCreateAPIView):

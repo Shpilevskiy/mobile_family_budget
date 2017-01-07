@@ -9,7 +9,7 @@ class RefLink(models.Model):
     link = models.CharField(max_length=120, unique=True)
     creation_date = models.DateField(default=timezone.now)
     expire_date = models.DateField(default=timezone.now() + timedelta(days=10))
-    activation_count = models.IntegerField(default=3)
+    activation_count = models.PositiveIntegerField(default=3)
 
     def __str__(self):
         return str(self.link)
