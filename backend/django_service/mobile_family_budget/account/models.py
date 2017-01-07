@@ -44,3 +44,6 @@ class BudgetGroup(models.Model):
         is the member of the current group
         """
         return self.users.filter(id=user.id).exists()
+
+    def __str__(self):
+        return self.name

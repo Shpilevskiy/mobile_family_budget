@@ -1,3 +1,9 @@
 from django.contrib import admin
 
-# Register your models here.
+from .models import (
+    RefLink,
+    BudgetGroup
+)
+
+admin.site.register(RefLink)
+admin.site.register(BudgetGroup)
