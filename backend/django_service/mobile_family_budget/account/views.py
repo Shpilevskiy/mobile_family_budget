@@ -98,14 +98,16 @@ class AddUserUpdateView(generics.UpdateAPIView):
         """
         Add user to group by invite link
         """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         try:
-            ref_link = RefLink.objects.get(link=request.POST.get('link'))
-            if ref_link.activation_count == 0 or timezone.datetime.date(timezone.now()) >= ref_link.expire_date:
+            ref_link = RefLink.objects.get(link=serializer.validated_data.get('link'))
+            if ref_link.activation_count <= 0 or timezone.datetime.date(timezone.now()) >= ref_link.expire_date:
                 return get_error_response('link was outdated')
             try:
                 budget_group = BudgetGroup.objects.get(invite_link=ref_link)
-                if request.user in budget_group.users.all():
-                    return get_error_response()
+                if budget_group.is_member(request.user):
+                    return get_error_response('user is already in this group')
                 budget_group.users.add(request.user)
                 budget_group.save()
                 ref_link.activation_count -= 1

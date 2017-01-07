@@ -74,6 +74,8 @@ class BudgetGroupCreateSerializer(serializers.ModelSerializer):
 
 
 class AddUserToGroupSerializer(serializers.ModelSerializer):
+    link = serializers.CharField(min_length=1, max_length=80)
+
     class Meta:
         model = RefLink
         fields = ('link',)
