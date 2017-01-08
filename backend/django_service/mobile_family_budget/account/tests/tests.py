@@ -1,3 +1,5 @@
+import datetime
+
 from rest_framework.test import APITestCase
 from rest_framework import status
 
@@ -81,9 +83,9 @@ class BudgetGroupTestCase(BaseCase):
         [self.client.post(self.ENDPOINT_URL, {'name': group}, format='json') for group in first_user_groups]
         response = self.client.get(self.ENDPOINT_URL)
         for group in response.json():
-            self.assertEqual(True, group['name'] in first_user_groups)
-            self.assertEqual(True, 'id' in group)
-            self.assertEqual(True, 'group_owner' in group)
+            self.assertTrue(group['name'] in first_user_groups)
+            self.assertTrue('id' in group)
+            self.assertTrue('group_owner' in group)
 
     def test_user_can_get_only_his_groups(self):
         first_user_groups = ['my_group', 'another_my_group', 'more_groups_for_me']
@@ -101,5 +103,124 @@ class BudgetGroupTestCase(BaseCase):
         resp_groups = [group.get('name') for group in response.json()]
         self.assertEqual(first_user_groups, resp_groups)
 
+    def test_user_can_get_detail_information_about_group(self):
+        group_name = 'my_group'
+        data = {"name": group_name}
+
+        self.login()
+        self.client.post(self.ENDPOINT_URL, data, format='json')
+
+        budget_group = BudgetGroup.objects.get(name=group_name)
+        response = self.client.get(self.ENDPOINT_URL + f'/{budget_group.id}/users/')
+        json_response = response.json()[0]
+        self.assertTrue('id' in json_response)
+        self.assertTrue('name' in json_response)
+        self.assertTrue('group_owner' in json_response)
+        self.assertTrue('username' in json_response['group_owner'])
+        self.assertTrue('email' in json_response['group_owner'])
+        self.assertEqual(budget_group.name, json_response['name'])
 
 
+class RefLinkTestCase(BaseCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.ENDPOINT_URL = '/account/budget-groups/'
+        super().setUpClass()
+
+    def test_ref_link_creates_with_group(self):
+        group_name = 'my_group'
+        data = {"name": group_name}
+
+        self.login()
+        self.client.post(self.ENDPOINT_URL, data, format='json')
+
+        budget_group = BudgetGroup.objects.get(name=group_name)
+        self.assertEqual(budget_group.invite_link, RefLink.objects.get())
+
+    def test_new_users_can_be_added_to_group_by_ref_link(self):
+        group_name = 'my_group'
+        data = {"name": group_name}
+
+        self.login()
+        self.client.post(self.ENDPOINT_URL, data, format='json')
+        self.logout()
+
+        budget_group = BudgetGroup.objects.get()
+        invite_link = budget_group.invite_link.link
+        self.create_user(self.SECOND_USER_USERNAME, self.SECOND_USER_PASSWORD)
+        self.login(self.SECOND_USER_USERNAME, self.SECOND_USER_PASSWORD)
+
+        data = {'link': invite_link}
+        response = self.client.put(self.ENDPOINT_URL + 'add-user/', data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(budget_group.is_member(User.objects.get(username=self.SECOND_USER_USERNAME)))
+
+    def test_only_group_member_can_get_information_about_invite_link(self):
+        group_name = 'my_group'
+        data = {"name": group_name}
+
+        self.login()
+        self.client.post(self.ENDPOINT_URL, data, format='json')
+        self.logout()
+
+        self.create_user(self.SECOND_USER_USERNAME, self.SECOND_USER_PASSWORD)
+        self.login(self.SECOND_USER_USERNAME, self.SECOND_USER_PASSWORD)
+        budget_group = BudgetGroup.objects.get()
+
+        response = self.client.get(self.ENDPOINT_URL + f'{budget_group.id}/invite_link/')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        response = self.client.post(self.ENDPOINT_URL + f'{budget_group.id}/invite_link/')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_user_can_update_invite_link(self):
+        group_name = 'my_group'
+        data = {"name": group_name}
+
+        self.login()
+        self.client.post(self.ENDPOINT_URL, data, format='json')
+
+        budget_group = BudgetGroup.objects.get()
+        invite_link = budget_group.invite_link
+
+        new_expire_date = "2025-01-16"
+        new_activation_count = invite_link.activation_count + 5
+        data = {"expire_date": new_expire_date, "activation_count": new_activation_count}
+        response = self.client.put(self.ENDPOINT_URL + f'{budget_group.id}/invite_link/', data, fromat='json')
+
+        invite_link = BudgetGroup.objects.get().invite_link
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(invite_link.expire_date, datetime.date(2025, 1, 16))
+        self.assertEqual(invite_link.activation_count, new_activation_count)
+
+    def test_user_cant_set_negative_activation_count(self):
+        group_name = 'my_group'
+        data = {"name": group_name}
+
+        self.login()
+        self.client.post(self.ENDPOINT_URL, data, format='json')
+
+        budget_group = BudgetGroup.objects.get()
+
+        new_activation_count = -5
+        data = {"expire_date": '2025-01-16', "activation_count": new_activation_count}
+        response = self.client.put(self.ENDPOINT_URL + f'{budget_group.id}/invite_link/', data, fromat='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue('Ensure this value is greater than or equal to 0' in response.json()['activation_count'][0])
+
+    def test_user_can_get_detail_information_about_invite_link(self):
+        group_name = 'my_group'
+        data = {"name": group_name}
+
+        self.login()
+        self.client.post(self.ENDPOINT_URL, data, format='json')
+
+        budget_group = BudgetGroup.objects.get()
+        response = self.client.get(self.ENDPOINT_URL + f'{budget_group.id}/invite_link/', data, fromat='json')
+
+        json_response = response.json()
+
+        self.assertTrue('creation_date' in json_response)
+        self.assertTrue('link' in json_response)
+        self.assertTrue('expire_date' in json_response)
+        self.assertTrue('activation_count' in json_response)
