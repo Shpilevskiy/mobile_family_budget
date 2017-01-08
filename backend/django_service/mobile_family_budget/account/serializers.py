@@ -40,6 +40,9 @@ class BudgetGroupSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    email = serializers.CharField(allow_blank=True, required=False, default='')
+    first_name = serializers.CharField(allow_blank=True, required=False, default='')
+
     class Meta:
         model = User
         fields = ('username', 'email', 'password', 'first_name')
@@ -49,7 +52,8 @@ class UserSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = User(
             email=validated_data['email'],
-            username=validated_data['username']
+            username=validated_data['username'],
+            first_name=validated_data['first_name']
         )
         user.set_password(validated_data['password'])
         user.is_active = True

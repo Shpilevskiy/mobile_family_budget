@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'account.apps.AccountConfig',
-    'purchaseManager.apps.PurchasemanagerConfig'
+    'purchaseManager.apps.PurchasemanagerConfig',
 ]
 
 MIDDLEWARE = [
@@ -132,6 +132,3 @@ REST_FRAMEWORK = {
     ),
     'PAGE_SIZE': 10
 }
-
-
-CSRF_COOKIE_SECURE = False

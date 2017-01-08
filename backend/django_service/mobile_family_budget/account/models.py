@@ -30,7 +30,7 @@ class BudgetGroup(models.Model):
 
     invite_link = models.OneToOneField(
         RefLink,
-        on_delete=models.CASCADE, unique=True)
+        on_delete=models.CASCADE, unique=True, null=True)
 
     users = models.ManyToManyField(User)
 
