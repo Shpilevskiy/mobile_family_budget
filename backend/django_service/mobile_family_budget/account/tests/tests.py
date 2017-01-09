@@ -137,6 +137,48 @@ class RefLinkTestCase(BaseCase):
         budget_group = BudgetGroup.objects.get(name=group_name)
         self.assertEqual(budget_group.invite_link, RefLink.objects.get())
 
+    def test_user_cant_be_added_to_group_if_activation_count_is_not_positive(self):
+        group_name = 'my_group'
+        data = {"name": group_name}
+
+        self.login()
+        self.client.post(self.ENDPOINT_URL, data, format='json')
+
+        budget_group = BudgetGroup.objects.get()
+        invite_link = budget_group.invite_link
+        self.create_user(self.SECOND_USER_USERNAME, self.SECOND_USER_PASSWORD)
+        self.login(self.SECOND_USER_USERNAME, self.SECOND_USER_PASSWORD)
+
+        invite_link.activation_count = 0
+        invite_link.save()
+
+        data = {'link': invite_link.link}
+        response = self.client.put(self.ENDPOINT_URL + 'add-user/', data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue(True, 'link was outdated' in response.json()['error'])
+
+    def test_user_cant_be_added_to_group_if_link_expired(self):
+        group_name = 'my_group'
+        data = {"name": group_name}
+
+        self.login()
+        self.client.post(self.ENDPOINT_URL, data, format='json')
+
+        budget_group = BudgetGroup.objects.get()
+        invite_link = budget_group.invite_link
+        self.create_user(self.SECOND_USER_USERNAME, self.SECOND_USER_PASSWORD)
+        self.login(self.SECOND_USER_USERNAME, self.SECOND_USER_PASSWORD)
+
+        invite_link.expire_date = datetime.datetime.now() - datetime.timedelta(days=10)
+        invite_link.save()
+
+        data = {'link': invite_link.link}
+        response = self.client.put(self.ENDPOINT_URL + 'add-user/', data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue(True, 'link was outdated' in response.json()['error'])
+
     def test_new_users_can_be_added_to_group_by_ref_link(self):
         group_name = 'my_group'
         data = {"name": group_name}

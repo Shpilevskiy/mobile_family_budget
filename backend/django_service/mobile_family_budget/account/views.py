@@ -31,7 +31,7 @@ def get_error_response(message='invalid link'):
     return Response({'error': '{}'.format(message)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class CreateUserView(CreateAPIView):
+class UserCreateView(CreateAPIView):
     model = User.objects.all()
     permission_classes = (permissions.AllowAny,)
     serializer_class = UserSerializer
