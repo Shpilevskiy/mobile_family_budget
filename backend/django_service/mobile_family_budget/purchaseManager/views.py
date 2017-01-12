@@ -1,20 +1,48 @@
 import json
 
 from django.http import HttpResponse
-from django.http import QueryDict
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework import generics
+from rest_framework import permissions
+from rest_framework import status
+from rest_framework.response import Response
 
 from .models import PurchaseList
 from .models import Purchase
 
-from .serializers import PurchaseListSerializer
-from .serializers import PurchaseSerializer
+from .serializers import PurchaseSerializer, PurchaseListSerializer
 
 from account.models import BudgetGroup
 
+from account.permissions import IsGroupMember
 
+
+class PurchaseListCreateApiView(generics.ListCreateAPIView):
+    permission_classes = (permissions.IsAuthenticated, IsGroupMember)
+    serializer_class = PurchaseListSerializer
+
+    def get_serializer_context(self):
+        return {'group_id': self.kwargs['group_id']}
+
+    def get_queryset(self, group_id=None):
+        return PurchaseList.objects.participant(self.kwargs['group_id'])
+
+    def get(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"status": "group {} successfully created".format(serializer.validated_data['name'])},
+                        status=status.HTTP_201_CREATED)
+
+
+# only update purchase view
 @method_decorator(csrf_exempt, name='dispatch')
 class UpdatePurchaseViewSet(View):
     def get_user_group(self, budget_group, user):
@@ -40,6 +68,7 @@ class UpdatePurchaseViewSet(View):
                 return HttpResponse(json.dumps({'error': 'Группа не найдена'}))
 
 
+# only delete purchase view
 @method_decorator(csrf_exempt, name='dispatch')
 class DeletePurchaseViewSet(View):
     def get_user_group(self, budget_group, user):
@@ -64,6 +93,7 @@ class DeletePurchaseViewSet(View):
                 return HttpResponse(json.dumps({'error': 'Группа не найдена'}))
 
 
+# get and add purchase view
 @method_decorator(csrf_exempt, name='dispatch')
 class PurchaseViewSet(View):
     def get_user_group(self, budget_group, user):
