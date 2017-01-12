@@ -19,27 +19,31 @@ from account.models import BudgetGroup
 from account.permissions import IsGroupMember
 
 
-class PurchaseListCreateApiView(generics.ListCreateAPIView):
+class PurchasesListsCreateApiView(generics.ListCreateAPIView):
     permission_classes = (permissions.IsAuthenticated, IsGroupMember)
     serializer_class = PurchaseListSerializer
 
     def get_serializer_context(self):
         return {'group_id': self.kwargs['group_id']}
 
-    def get_queryset(self, group_id=None):
+    def get_queryset(self):
         return PurchaseList.objects.participant(self.kwargs['group_id'])
 
-    def get(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
 
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response({"status": "group {} successfully created".format(serializer.validated_data['name'])},
-                        status=status.HTTP_201_CREATED)
+class PurchaseListRetrieveUpdateView(generics.RetrieveUpdateAPIView):
+    permission_classes = (permissions.IsAuthenticated, IsGroupMember)
+    serializer_class = PurchaseListSerializer
+
+    lookup_url_kwarg = 'purchase_list_id'
+
+    def get_queryset(self):
+        return PurchaseList.objects.participant(self.kwargs['group_id'], self.kwargs['purchase_list_id'])
+
+    def get_serializer_context(self):
+        return {
+            'group_id': self.kwargs['group_id'],
+            'purchase_list_id': self.kwargs['purchase_list_id']
+        }
 
 
 # only update purchase view
