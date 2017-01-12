@@ -3,7 +3,7 @@ import datetime
 from rest_framework.test import APITestCase
 from rest_framework import status
 
-from account.tests.base import BaseCase
+from mobile_family_budget.tests.base import BaseCase
 from account.models import (
     BudgetGroup,
     RefLink,
