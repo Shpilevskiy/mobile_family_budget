@@ -2,12 +2,18 @@ import uuid
 
 from django.contrib.auth.models import User
 
+from django.db import (
+    IntegrityError,
+    transaction
+)
+
 from django.utils import timezone
 
-from rest_framework import permissions
-from rest_framework import status
-from rest_framework import generics
-from rest_framework.generics import CreateAPIView
+from rest_framework import (
+    permissions,
+    status,
+    generics
+)
 from rest_framework.response import Response
 
 from .serializers import (
@@ -19,8 +25,10 @@ from .serializers import (
     RefLinkSerializer
 )
 
-from .models import BudgetGroup
-from .models import RefLink
+from .models import (
+    BudgetGroup,
+    RefLink
+)
 
 from .permissions import IsGroupMember
 
@@ -31,7 +39,7 @@ def get_error_response(message='invalid link'):
     return Response({'error': '{}'.format(message)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UserCreateView(CreateAPIView):
+class UserCreateView(generics.CreateAPIView):
     model = User.objects.all()
     permission_classes = (permissions.AllowAny,)
     serializer_class = UserSerializer
@@ -79,9 +87,15 @@ class AddUserUpdateView(generics.UpdateAPIView):
                 if budget_group.is_member(request.user):
                     return get_error_response('user is already in this group')
                 budget_group.users.add(request.user)
-                budget_group.save()
-                ref_link.activation_count -= 1
-                ref_link.save()
+                try:
+                    with transaction.atomic():
+                        budget_group.save()
+                        ref_link.activation_count -= 1
+                        ref_link.save()
+                except IntegrityError:
+                    # TODO: find way to handle errors like this
+                    return Response({'error': 'transaction error, try again'},
+                                    status=status.HTTP_500_INTERNAL_SERVER_ERROR)
                 return Response({'status': 'user successfully added to group {}'.format(budget_group.name)},
                                 status=status.HTTP_200_OK)
             except BudgetGroup.DoesNotExist:
@@ -93,6 +107,7 @@ class AddUserUpdateView(generics.UpdateAPIView):
 class RefLinkRetrieveUpdateView(generics.RetrieveUpdateAPIView):
     permission_classes = (permissions.IsAuthenticated, IsGroupMember)
     serializer_class = RefLinkSerializer
+    lookup_url_kwarg = 'group_id'
 
     def get_queryset(self):
         return RefLink.objects.get(
@@ -144,17 +159,22 @@ class BudgetGroupListView(generics.ListCreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        budget_group = serializer.save(owner=request.user)
+        try:
+            with transaction.atomic():
+                budget_group = serializer.save(owner=request.user)
 
-        budget_group.users.add(request.user)
-        invite_link = RefLink(link="{}{}".format(budget_group.id, uuid.uuid4().hex))
-        invite_link.save()
+                budget_group.users.add(request.user)
+                invite_link = RefLink(link="{}{}".format(budget_group.id, uuid.uuid4().hex))
+                invite_link.save()
 
-        budget_group.invite_link = invite_link
-        budget_group.save()
+                budget_group.invite_link = invite_link
+                budget_group.save()
 
-        purchase_list = PurchaseList(budget_group=budget_group)
-        purchase_list.save()
+                purchase_list = PurchaseList(budget_group=budget_group)
+                purchase_list.save()
+        except IntegrityError:
+            # TODO: find way to handle errors like this
+            return Response({'error': 'transaction error, try again'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response({
             'status': 'group {} successfully registered'.format(budget_group.name)
