@@ -261,8 +261,20 @@ class RefLinkTestCase(BaseCase):
         response = self.client.get(self.ENDPOINT_URL + f'{budget_group.id}/invite_link/', data, fromat='json')
 
         json_response = response.json()
+        invite_link = RefLink.objects.get()
+        creation_date = invite_link.creation_date
+        expire_date = invite_link.expire_date
 
         self.assertTrue('creation_date' in json_response)
+        self.assertEqual(json_response['creation_date'],
+                         f"{creation_date.year}-{creation_date.strftime('%m')}-{creation_date.strftime('%d')}")
+
         self.assertTrue('link' in json_response)
+        self.assertEqual(json_response['link'], invite_link.link)
+
         self.assertTrue('expire_date' in json_response)
+        self.assertEqual(json_response['expire_date'],
+                         f"{expire_date.year}-{expire_date.strftime('%m')}-{expire_date.strftime('%d')}")
+
         self.assertTrue('activation_count' in json_response)
+        self.assertEqual(json_response['activation_count'], invite_link.activation_count)
