@@ -6,17 +6,16 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import generics
 from rest_framework import permissions
-from rest_framework import status
-from rest_framework.response import Response
-
-from .models import PurchaseList
-from .models import Purchase
-
-from .serializers import PurchaseSerializer, PurchaseListSerializer
 
 from account.models import BudgetGroup
-
 from account.permissions import IsGroupMember
+from mobile_family_budget.utils.ulr_kwarg_consts import (
+    GROUP_URL_KWARG,
+    PURCHASE_LIST_URL_KWARG
+)
+from .models import Purchase
+from .models import PurchaseList
+from .serializers import PurchaseSerializer, PurchaseListSerializer
 
 
 class PurchasesListsCreateApiView(generics.ListCreateAPIView):
@@ -24,25 +23,25 @@ class PurchasesListsCreateApiView(generics.ListCreateAPIView):
     serializer_class = PurchaseListSerializer
 
     def get_serializer_context(self):
-        return {'group_id': self.kwargs['group_id']}
+        return {GROUP_URL_KWARG: self.kwargs[GROUP_URL_KWARG]}
 
     def get_queryset(self):
-        return PurchaseList.objects.participant(self.kwargs['group_id'])
+        return PurchaseList.objects.participant(self.kwargs[GROUP_URL_KWARG])
 
 
 class PurchaseListRetrieveUpdateView(generics.RetrieveUpdateAPIView):
     permission_classes = (permissions.IsAuthenticated, IsGroupMember)
     serializer_class = PurchaseListSerializer
-
-    lookup_url_kwarg = 'purchase_list_id'
+    lookup_url_kwarg = PURCHASE_LIST_URL_KWARG
 
     def get_queryset(self):
-        return PurchaseList.objects.participant(self.kwargs['group_id'], self.kwargs['purchase_list_id'])
+        return PurchaseList.objects.participant(self.kwargs[GROUP_URL_KWARG],
+                                                self.kwargs[PURCHASE_LIST_URL_KWARG])
 
     def get_serializer_context(self):
         return {
-            'group_id': self.kwargs['group_id'],
-            'purchase_list_id': self.kwargs['purchase_list_id']
+            GROUP_URL_KWARG: self.kwargs[GROUP_URL_KWARG],
+            PURCHASE_LIST_URL_KWARG: self.kwargs[PURCHASE_LIST_URL_KWARG]
         }
 
 
