@@ -16,7 +16,7 @@ from rest_framework import (
 )
 from rest_framework.response import Response
 
-from .serializers import (
+from account.serializers import (
     UserSerializer,
     BudgetGroupUserSerializer,
     BudgetGroupSerializer,
@@ -25,14 +25,16 @@ from .serializers import (
     RefLinkSerializer
 )
 
-from .models import (
+from account.models import (
     BudgetGroup,
     RefLink
 )
 
-from .permissions import IsGroupMember
+from account.permissions import IsGroupMember
 
 from purchaseManager.models import PurchaseList
+
+from mobile_family_budget.utils.ulr_kwarg_consts import GROUP_URL_KWARG
 
 
 def get_error_response(message='invalid link'):
@@ -60,7 +62,7 @@ class UserCreateView(generics.CreateAPIView):
 class BudgetGroupUsersListView(generics.ListAPIView):
     permission_classes = (permissions.IsAuthenticated, IsGroupMember)
     serializer_class = BudgetGroupUserSerializer
-    lookup_url_kwarg = 'group_id'
+    lookup_url_kwarg = GROUP_URL_KWARG
 
     def get_queryset(self):
         group_id = self.kwargs[self.lookup_url_kwarg]
@@ -107,11 +109,11 @@ class AddUserUpdateView(generics.UpdateAPIView):
 class RefLinkRetrieveUpdateView(generics.RetrieveUpdateAPIView):
     permission_classes = (permissions.IsAuthenticated, IsGroupMember)
     serializer_class = RefLinkSerializer
-    lookup_url_kwarg = 'group_id'
+    lookup_url_kwarg = GROUP_URL_KWARG
 
     def get_queryset(self):
         return RefLink.objects.get(
-            budgetgroup=BudgetGroup.objects.get(id=self.kwargs.get('group_id')))
+            budgetgroup=BudgetGroup.objects.get(id=self.kwargs.get(GROUP_URL_KWARG)))
 
     def get(self, request, *args, **kwargs):
         """
