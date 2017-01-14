@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -37,6 +38,17 @@ class BudgetGroup(models.Model):
     name = models.CharField(max_length=30)
 
     objects = BudgetGroupManager()
+
+    def create_ref_link(self, **kwargs):
+        old_link = self.invite_link
+        if old_link:
+            old_link.delete()
+        
+        kwargs['link'] = "{}{}".format(self.id, uuid.uuid4().hex)
+        ref_link = RefLink(**{k: v for k, v in kwargs.items() if v is not None})
+        ref_link.save()
+        self.invite_link = ref_link
+        self.save()
 
     def is_member(self, user):
         """

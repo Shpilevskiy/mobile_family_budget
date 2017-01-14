@@ -166,11 +166,7 @@ class BudgetGroupListView(generics.ListCreateAPIView):
                 budget_group = serializer.save(owner=request.user)
 
                 budget_group.users.add(request.user)
-                invite_link = RefLink(link="{}{}".format(budget_group.id, uuid.uuid4().hex))
-                invite_link.save()
-
-                budget_group.invite_link = invite_link
-                budget_group.save()
+                budget_group.create_ref_link()
 
                 purchase_list = PurchaseList(budget_group=budget_group)
                 purchase_list.save()

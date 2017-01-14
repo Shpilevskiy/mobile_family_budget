@@ -1,6 +1,6 @@
-django==1.10.3
-gunicorn==19.6.0
+django
+gunicorn
 djangorestframework
 markdown
 django-filter
-djangorestframework-jwt
+factory_boy
