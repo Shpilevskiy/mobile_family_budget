@@ -9,7 +9,7 @@ from rest_framework import serializers
 class BudgetGroupUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('username', 'email')
+        fields = ('username', 'email', 'first_name')
 
 
 class RefLinkSerializer(serializers.ModelSerializer):
@@ -74,12 +74,10 @@ class BudgetGroupCreateSerializer(serializers.ModelSerializer):
         fields = ('name',)
 
     def create(self, validated_data):
-        budget_group = BudgetGroup(
+        return BudgetGroup.objects.create(
             group_owner=validated_data['owner'],
             name=validated_data['name']
         )
-        budget_group.save()
-        return budget_group
 
 
 class AddUserToGroupSerializer(serializers.ModelSerializer):
