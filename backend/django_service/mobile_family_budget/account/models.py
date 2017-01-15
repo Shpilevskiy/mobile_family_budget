@@ -12,6 +12,10 @@ class RefLink(models.Model):
     expire_date = models.DateField(default=timezone.now() + timedelta(days=10))
     activation_count = models.PositiveIntegerField(default=3)
 
+    def generate_new_link(self):
+        self.link = "{}{}".format(self.id, uuid.uuid4().hex)
+        self.save()
+
     def __str__(self):
         return str(self.link)
 
@@ -40,15 +44,17 @@ class BudgetGroup(models.Model):
     objects = BudgetGroupManager()
 
     def create_ref_link(self, **kwargs):
-        old_link = self.invite_link
-        if old_link:
-            old_link.delete()
-        
-        kwargs['link'] = "{}{}".format(self.id, uuid.uuid4().hex)
-        ref_link = RefLink(**{k: v for k, v in kwargs.items() if v is not None})
-        ref_link.save()
+        """
+        Creates new invite link for the group,
+        deletes old link, if exist
+        """
+        if self.invite_link:
+            self.invite_link.delete()
+
+        ref_link = RefLink.objects.create(**{k: v for k, v in kwargs.items() if v is not None})
         self.invite_link = ref_link
         self.save()
+        ref_link.generate_new_link()
 
     def is_member(self, user):
         """

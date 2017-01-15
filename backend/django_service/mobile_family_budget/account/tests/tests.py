@@ -215,6 +215,23 @@ class RefLinkTestCase(BaseCase):
         response = self.client.post(self.ENDPOINT_URL + f'{budget_group.id}/invite_link/')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_user_can_generate_new_link(self):
+        group_name = 'my_group'
+        data = {"name": group_name}
+
+        self.login()
+        self.client.post(self.ENDPOINT_URL, data, format='json')
+
+        budget_group = BudgetGroup.objects.get()
+        old_link = budget_group.invite_link.link
+        data = {"is_generate_new_link": "true"}
+
+        response = self.client.put(self.ENDPOINT_URL + f'{budget_group.id}/invite_link/', data, fromat='json')
+
+        new_link = BudgetGroup.objects.get().invite_link.link
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotEqual(old_link, new_link)
+
     def test_user_can_update_invite_link(self):
         group_name = 'my_group'
         data = {"name": group_name}

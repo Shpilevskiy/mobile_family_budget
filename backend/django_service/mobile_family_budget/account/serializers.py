@@ -13,20 +13,25 @@ class BudgetGroupUserSerializer(serializers.ModelSerializer):
 
 
 class RefLinkSerializer(serializers.ModelSerializer):
-    expire_date = serializers.DateField()
-    activation_count = serializers.IntegerField(min_value=0)
+    expire_date = serializers.DateField(required=False)
+    activation_count = serializers.IntegerField(min_value=0, required=False)
+    is_generate_new_link = serializers.BooleanField(required=False)
 
     class Meta:
         model = RefLink
         fields = ('link',
                   'creation_date',
                   'expire_date',
-                  'activation_count',)
+                  'activation_count',
+                  'is_generate_new_link')
+        write_only_fields = ('is_generate_new_link',)
         read_only_fields = ('creation_date', 'link')
 
     def update(self, instance, validated_data):
         instance.expire_date = validated_data.get('expire_date', instance.expire_date)
         instance.activation_count = validated_data.get('activation_count', instance.activation_count)
+        if validated_data.get('is_generate_new_link', False):
+            instance.generate_new_link()
         instance.save()
         return instance
 
