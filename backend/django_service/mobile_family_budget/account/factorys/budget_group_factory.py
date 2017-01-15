@@ -20,8 +20,8 @@ class BudgetGroupFactory(DjangoModelFactory):
 
     name = Faker('user_name')
     group_owner = SubFactory(UserFactory)
-    invite_link = RelatedFactory(RefLinkFactory)
 
     @post_generation
     def users(self, *args, **kwargs):
+        self.create_ref_link()
         self.users.add(self.group_owner)

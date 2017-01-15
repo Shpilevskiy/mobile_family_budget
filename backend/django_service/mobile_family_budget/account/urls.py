@@ -14,7 +14,7 @@ urlpatterns = [
     url(r'^budget-groups/(?P<{}>[0-9]+)/users/'.format(GROUP_URL_KWARG),
         BudgetGroupUsersListView.as_view(), name='budget-group-users'),
 
-    url(r'^budget-groups/(?P<{}>[0-9]+)/invite_link/'.format(GROUP_URL_KWARG),
+    url(r'^budget-groups/(?P<{}>[0-9]+)/invite-link/'.format(GROUP_URL_KWARG),
         RefLinkRetrieveUpdateView.as_view(), name='budget-group-invite-link'),
 
     url(r'^budget-groups/add-user/', AddUserUpdateView.as_view(), name='add-user'),

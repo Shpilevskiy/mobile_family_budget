@@ -15,6 +15,8 @@ from account.models import (
 from account.factorys.user_factory import UserFactory
 from account.factorys.budget_group_factory import BudgetGroupFactory
 
+from mobile_family_budget.utils.ulr_kwarg_consts import GROUP_URL_KWARG
+
 from purchaseManager.models import PurchaseList
 
 
@@ -29,11 +31,6 @@ class AuthTestCase(APITestCase):
 
 
 class BudgetGroupTestCase(BaseCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.EENDPOINT_URL = '/account/budget-groups/'
-        super().setUpClass()
-
     def test_only_authorized_user_can_reach_endpoint(self):
         url = reverse('account:budget-groups')
 
@@ -125,7 +122,7 @@ class BudgetGroupTestCase(BaseCase):
         self.assertEqual(user_groups, resp_groups)
 
     def test_user_can_get_detail_information_about_users_in_group(self):
-        url = reverse('account:budget-group-users', kwargs={'group_id': self.budget_group.id})
+        url = reverse('account:budget-group-users', kwargs={GROUP_URL_KWARG: self.budget_group.id})
 
         self.budget_group.users.add(UserFactory(), UserFactory(), UserFactory())
 
@@ -141,166 +138,112 @@ class BudgetGroupTestCase(BaseCase):
 
 
 class RefLinkTestCase(BaseCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.ENDPOINT_URL = '/account/budget-groups/'
-        super().setUpClass()
-
     def test_ref_link_creates_with_group(self):
+        url = reverse('account:budget-groups')
         group_name = 'my_group'
-        data = {"name": group_name}
 
-        self.login()
-        self.client.post(self.ENDPOINT_URL, data, format='json')
+        user = UserFactory()
+        self.login(user.username)
+        self.client.post(url, {"name": group_name}, format='json')
 
-        budget_group = BudgetGroup.objects.get(name=group_name)
-        self.assertEqual(budget_group.invite_link, RefLink.objects.get())
+        budget_group = BudgetGroup.objects.get(name=group_name, group_owner=user)
+        self.assertEqual(budget_group.invite_link, RefLink.objects.get(budgetgroup=budget_group))
 
     def test_user_cant_be_added_to_group_if_he_is_already_in(self):
         pass
 
     def test_user_cant_be_added_to_group_if_activation_count_is_not_positive(self):
-        group_name = 'my_group'
-        data = {"name": group_name}
-
-        self.login()
-        self.client.post(self.ENDPOINT_URL, data, format='json')
-
-        budget_group = BudgetGroup.objects.get()
-        invite_link = budget_group.invite_link
-        self.create_user(self.SECOND_USER_USERNAME, self.SECOND_USER_PASSWORD)
-        self.login(self.SECOND_USER_USERNAME, self.SECOND_USER_PASSWORD)
-
+        url = reverse('account:add-user')
+        invite_link = self.budget_group.invite_link
         invite_link.activation_count = 0
         invite_link.save()
 
-        data = {'link': invite_link.link}
-        response = self.client.put(self.ENDPOINT_URL + 'add-user/', data, format='json')
+        self.login(UserFactory().username)
+        response = self.client.put(url, {'link': invite_link.link}, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertTrue(True, 'link was outdated' in response.json()['error'])
 
     def test_user_cant_be_added_to_group_if_link_expired(self):
-        group_name = 'my_group'
-        data = {"name": group_name}
-
-        self.login()
-        self.client.post(self.ENDPOINT_URL, data, format='json')
-
-        budget_group = BudgetGroup.objects.get()
-        invite_link = budget_group.invite_link
-        self.create_user(self.SECOND_USER_USERNAME, self.SECOND_USER_PASSWORD)
-        self.login(self.SECOND_USER_USERNAME, self.SECOND_USER_PASSWORD)
+        url = reverse('account:add-user')
+        invite_link = self.budget_group.invite_link
 
         invite_link.expire_date = datetime.datetime.now() - datetime.timedelta(days=10)
         invite_link.save()
 
-        data = {'link': invite_link.link}
-        response = self.client.put(self.ENDPOINT_URL + 'add-user/', data, format='json')
+        self.login(UserFactory().username)
+        response = self.client.put(url, {'link': invite_link.link}, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertTrue(True, 'link was outdated' in response.json()['error'])
 
     def test_new_users_can_be_added_to_group_by_ref_link(self):
-        group_name = 'my_group'
-        data = {"name": group_name}
+        url = reverse('account:add-user')
+        invite_link = self.budget_group.invite_link
 
-        self.login()
-        self.client.post(self.ENDPOINT_URL, data, format='json')
-        self.logout()
-
-        budget_group = BudgetGroup.objects.get()
-        invite_link = budget_group.invite_link.link
-        self.create_user(self.SECOND_USER_USERNAME, self.SECOND_USER_PASSWORD)
-        self.login(self.SECOND_USER_USERNAME, self.SECOND_USER_PASSWORD)
-
-        data = {'link': invite_link}
-        response = self.client.put(self.ENDPOINT_URL + 'add-user/', data, format='json')
+        user = UserFactory()
+        self.login(user.username)
+        response = self.client.put(url, {'link': invite_link.link}, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(budget_group.is_member(User.objects.get(username=self.SECOND_USER_USERNAME)))
+        self.assertTrue(self.budget_group.is_member(user))
 
     def test_only_group_member_can_get_information_about_invite_link(self):
-        group_name = 'my_group'
-        data = {"name": group_name}
+        url = reverse('account:budget-group-invite-link', kwargs={GROUP_URL_KWARG: self.budget_group.id})
 
-        self.login()
-        self.client.post(self.ENDPOINT_URL, data, format='json')
-        self.logout()
+        self.login(UserFactory().username)
 
-        self.create_user(self.SECOND_USER_USERNAME, self.SECOND_USER_PASSWORD)
-        self.login(self.SECOND_USER_USERNAME, self.SECOND_USER_PASSWORD)
-        budget_group = BudgetGroup.objects.get()
-
-        response = self.client.get(self.ENDPOINT_URL + f'{budget_group.id}/invite_link/')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        response = self.client.post(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-        response = self.client.post(self.ENDPOINT_URL + f'{budget_group.id}/invite_link/')
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.login(self.budget_group.group_owner.username)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_user_can_generate_new_link(self):
-        group_name = 'my_group'
-        data = {"name": group_name}
+        url = reverse('account:budget-group-invite-link', kwargs={GROUP_URL_KWARG: self.budget_group.id})
+        old_link = self.budget_group.invite_link.link
 
-        self.login()
-        self.client.post(self.ENDPOINT_URL, data, format='json')
+        self.login(self.budget_group.group_owner.username)
+        response = self.client.put(url, {"is_generate_new_link": "true"}, format='json')
 
-        budget_group = BudgetGroup.objects.get()
-        old_link = budget_group.invite_link.link
-        data = {"is_generate_new_link": "true"}
-
-        response = self.client.put(self.ENDPOINT_URL + f'{budget_group.id}/invite_link/', data, fromat='json')
-
-        new_link = BudgetGroup.objects.get().invite_link.link
+        new_link = RefLink.objects.get(budgetgroup=self.budget_group).link
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertNotEqual(old_link, new_link)
 
     def test_user_can_update_invite_link(self):
-        group_name = 'my_group'
-        data = {"name": group_name}
-
-        self.login()
-        self.client.post(self.ENDPOINT_URL, data, format='json')
-
-        budget_group = BudgetGroup.objects.get()
-        invite_link = budget_group.invite_link
+        url = reverse('account:budget-group-invite-link', kwargs={GROUP_URL_KWARG: self.budget_group.id})
 
         new_expire_date = "2025-01-16"
-        new_activation_count = invite_link.activation_count + 5
+        new_activation_count = self.budget_group.invite_link.activation_count + 5
         data = {"expire_date": new_expire_date, "activation_count": new_activation_count}
-        response = self.client.put(self.ENDPOINT_URL + f'{budget_group.id}/invite_link/', data, fromat='json')
 
-        invite_link = BudgetGroup.objects.get().invite_link
+        self.login(self.budget_group.group_owner.username)
+        response = self.client.put(url, data, format='json')
+
+        invite_link = RefLink.objects.get(budgetgroup=self.budget_group)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(invite_link.expire_date, datetime.date(2025, 1, 16))
         self.assertEqual(invite_link.activation_count, new_activation_count)
 
     def test_user_cant_set_negative_activation_count(self):
-        group_name = 'my_group'
-        data = {"name": group_name}
+        url = reverse('account:budget-group-invite-link', kwargs={GROUP_URL_KWARG: self.budget_group.id})
 
-        self.login()
-        self.client.post(self.ENDPOINT_URL, data, format='json')
-
-        budget_group = BudgetGroup.objects.get()
-
-        new_activation_count = -5
-        data = {"expire_date": '2025-01-16', "activation_count": new_activation_count}
-        response = self.client.put(self.ENDPOINT_URL + f'{budget_group.id}/invite_link/', data, fromat='json')
+        self.login(self.budget_group.group_owner.username)
+        response = self.client.put(url, {"activation_count": -5}, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertTrue('Ensure this value is greater than or equal to 0' in response.json()['activation_count'][0])
 
     def test_user_can_get_detail_information_about_invite_link(self):
-        group_name = 'my_group'
-        data = {"name": group_name}
+        url = reverse('account:budget-group-invite-link', kwargs={GROUP_URL_KWARG: self.budget_group.id})
 
-        self.login()
-        self.client.post(self.ENDPOINT_URL, data, format='json')
+        self.login(self.budget_group.group_owner.username)
 
-        budget_group = BudgetGroup.objects.get()
-        response = self.client.get(self.ENDPOINT_URL + f'{budget_group.id}/invite_link/', data, fromat='json')
+        response = self.client.get(url, format='json')
 
         json_response = response.json()
-        invite_link = RefLink.objects.get()
+        invite_link = RefLink.objects.get(budgetgroup=self.budget_group)
         creation_date = invite_link.creation_date
         expire_date = invite_link.expire_date
 
