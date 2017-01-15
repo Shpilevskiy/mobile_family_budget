@@ -4,6 +4,8 @@ from rest_framework.test import APITestCase
 
 User = get_user_model()
 
+DEFAULT_PASSWORD = "very_secret_password"
+
 
 class BaseCase(APITestCase):
     def create_user(self, username, password):
@@ -13,9 +15,8 @@ class BaseCase(APITestCase):
         return user
 
     def login(self, username='first_user', password='password_1'):
-        a = self.client.login(username=username,
-                              password=password)
-        print(a)
+        self.client.login(username=username,
+                          password=password)
 
     def logout(self):
         self.client.logout()
