@@ -2,6 +2,7 @@ from factory import (
     DjangoModelFactory,
     Faker,
     SubFactory,
+    RelatedFactory,
     post_generation
 )
 
@@ -15,11 +16,11 @@ class BudgetGroupFactory(DjangoModelFactory):
     class Meta:
         model = BudgetGroup
 
-        django_get_or_create = ('name', 'group_owner', 'invite_link')
+        django_get_or_create = ('name', 'group_owner')
 
     name = Faker('user_name')
     group_owner = SubFactory(UserFactory)
-    invite_link = SubFactory(RefLinkFactory)
+    invite_link = RelatedFactory(RefLinkFactory)
 
     @post_generation
     def users(self, *args, **kwargs):

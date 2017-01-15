@@ -4,7 +4,7 @@ from factory import (
     PostGenerationMethodCall
 )
 
-from mobile_family_budget.tests.base import DEFAULT_PASSWORD
+from mobile_family_budget.tests.test_consts import DEFAULT_PASSWORD
 
 from django.contrib.auth.models import User
 
@@ -16,5 +16,6 @@ class UserFactory(DjangoModelFactory):
 
     username = Faker('user_name')
     email = Faker('email')
-    password = PostGenerationMethodCall('set_password', DEFAULT_PASSWORD)
     first_name = Faker('first_name')
+    password = PostGenerationMethodCall('set_password', DEFAULT_PASSWORD)
+
