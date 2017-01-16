@@ -19,12 +19,9 @@ from .models import PurchaseList
 from .serializers import PurchaseSerializer, PurchaseListSerializer
 
 
-class PurchasesListsCreateApiView(generics.ListCreateAPIView):
+class PurchasesListsListCreateApiView(generics.ListCreateAPIView):
     permission_classes = (permissions.IsAuthenticated, IsGroupMember)
     serializer_class = PurchaseListSerializer
-
-    def get_serializer_context(self):
-        return {GROUP_URL_KWARG: self.kwargs[GROUP_URL_KWARG]}
 
     def get_queryset(self):
         return PurchaseList.objects.participant(self.kwargs[GROUP_URL_KWARG])
@@ -39,11 +36,8 @@ class PurchaseListRetrieveUpdateView(generics.RetrieveUpdateAPIView):
         return PurchaseList.objects.participant(self.kwargs[GROUP_URL_KWARG],
                                                 self.kwargs[PURCHASE_LIST_URL_KWARG])
 
-    def get_serializer_context(self):
-        return {
-            GROUP_URL_KWARG: self.kwargs[GROUP_URL_KWARG],
-            PURCHASE_LIST_URL_KWARG: self.kwargs[PURCHASE_LIST_URL_KWARG]
-        }
+
+# all views that are beneath this comment are deprecated
 
 
 # only update purchase view
