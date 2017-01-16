@@ -15,6 +15,8 @@ class BaseCase(APITestCase):
 
     def setUp(self):
         self.budget_group = BudgetGroupFactory()
+        self.user = self.budget_group.group_owner
+        self.username = self.user.username
         super().setUp()
 
     def tearDown(self):

@@ -126,7 +126,7 @@ class BudgetGroupTestCase(BaseCase):
 
         self.budget_group.users.add(UserFactory(), UserFactory(), UserFactory())
 
-        self.login(self.budget_group.group_owner.username)
+        self.login(self.username)
 
         response = self.client.get(url)
         json_response = response.json()['results']
@@ -197,7 +197,7 @@ class RefLinkTestCase(BaseCase):
         response = self.client.post(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-        self.login(self.budget_group.group_owner.username)
+        self.login(self.username)
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -205,7 +205,7 @@ class RefLinkTestCase(BaseCase):
         url = reverse('account:budget-group-invite-link', kwargs={GROUP_URL_KWARG: self.budget_group.id})
         old_link = self.budget_group.invite_link.link
 
-        self.login(self.budget_group.group_owner.username)
+        self.login(self.username)
         response = self.client.put(url, {"is_generate_new_link": "true"}, format='json')
 
         new_link = RefLink.objects.get(budgetgroup=self.budget_group).link
@@ -219,7 +219,7 @@ class RefLinkTestCase(BaseCase):
         new_activation_count = self.budget_group.invite_link.activation_count + 5
         data = {"expire_date": new_expire_date, "activation_count": new_activation_count}
 
-        self.login(self.budget_group.group_owner.username)
+        self.login(self.username)
         response = self.client.put(url, data, format='json')
 
         invite_link = RefLink.objects.get(budgetgroup=self.budget_group)
@@ -230,7 +230,7 @@ class RefLinkTestCase(BaseCase):
     def test_user_cant_set_negative_activation_count(self):
         url = reverse('account:budget-group-invite-link', kwargs={GROUP_URL_KWARG: self.budget_group.id})
 
-        self.login(self.budget_group.group_owner.username)
+        self.login(self.username)
         response = self.client.put(url, {"activation_count": -5}, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertTrue('Ensure this value is greater than or equal to 0' in response.json()['activation_count'][0])
@@ -238,7 +238,7 @@ class RefLinkTestCase(BaseCase):
     def test_user_can_get_detail_information_about_invite_link(self):
         url = reverse('account:budget-group-invite-link', kwargs={GROUP_URL_KWARG: self.budget_group.id})
 
-        self.login(self.budget_group.group_owner.username)
+        self.login(self.username)
 
         response = self.client.get(url, format='json')
 

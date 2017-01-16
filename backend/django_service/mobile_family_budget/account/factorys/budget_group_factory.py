@@ -2,14 +2,12 @@ from factory import (
     DjangoModelFactory,
     Faker,
     SubFactory,
-    RelatedFactory,
     post_generation
 )
 
 from account.models import BudgetGroup
 
 from account.factorys.user_factory import UserFactory
-from account.factorys.ref_link_factory import RefLinkFactory
 
 
 class BudgetGroupFactory(DjangoModelFactory):
