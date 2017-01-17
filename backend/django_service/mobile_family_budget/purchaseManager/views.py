@@ -37,6 +37,13 @@ class PurchaseListRetrieveUpdateView(generics.RetrieveUpdateAPIView):
                                                 self.kwargs[PURCHASE_LIST_URL_KWARG])
 
 
+class PurchasesListCreateApiView(generics.ListCreateAPIView):
+    permission_classes = (permissions.IsAuthenticated, IsGroupMember)
+    serializer_class = PurchaseSerializer
+
+    def get_queryset(self):
+        return Purchase.objects.participant(self.kwargs[PURCHASE_LIST_URL_KWARG])
+
 # all views that are beneath this comment are deprecated
 
 

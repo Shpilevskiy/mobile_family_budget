@@ -4,7 +4,8 @@ from .views import DeletePurchaseViewSet
 from .views import PurchaseViewSet
 from .views import (
     PurchasesListsListCreateApiView,
-    PurchaseListRetrieveUpdateView
+    PurchaseListRetrieveUpdateView,
+    PurchasesListCreateApiView
 )
 from .views import UpdatePurchaseViewSet
 
@@ -14,6 +15,8 @@ from mobile_family_budget.utils.ulr_kwarg_consts import (
 )
 
 urlpatterns = [
+    url(r'group/(?P<{}>[0-9]+)/purchases-lists/(?P<{}>[0-9]+)/purchases'.format(GROUP_URL_KWARG, PURCHASE_LIST_URL_KWARG),
+        PurchasesListCreateApiView.as_view(), name='purchases'),
     url(r'group/(?P<{}>[0-9]+)/purchases-lists/(?P<{}>[0-9]+)'.format(GROUP_URL_KWARG, PURCHASE_LIST_URL_KWARG),
         PurchaseListRetrieveUpdateView.as_view(), name='purchases-list'),
 

@@ -20,10 +20,23 @@ class PurchaseList(models.Model):
         return self.name
 
 
+class PurchaseManager(models.Manager):
+    def participant(self, purchase_list_id, purchase_id=None):
+        purchase_list = PurchaseList.objects.get(id=purchase_list_id)
+        if purchase_id:
+            return Purchase.objects.filter(id=purchase_id, purchase_list=purchase_list)
+        return Purchase.objects.filter(purchase_list_id=purchase_list)
+
+
 class Purchase(models.Model):
     name = models.CharField(max_length=30)
-    count = models.IntegerField(default=1)
-    price = models.FloatField()
-    current_count = models.IntegerField(default=0)
+    count = models.PositiveIntegerField(default=1)
+    price = models.FloatField(default=0)
+    current_count = models.PositiveIntegerField(default=0)
     status = models.BooleanField(default=False)
     purchase_list = models.ForeignKey(PurchaseList, on_delete=models.CASCADE)
+
+    objects = PurchaseManager()
+
+    def __str__(self):
+        return self.name
