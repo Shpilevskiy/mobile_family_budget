@@ -229,8 +229,25 @@ class PurchasesTestCase(BaseCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_get_purchases_information(self):
-        PurchaseFactory.create_batch(3, purchase_list=self.purchase_list)
-        expected_data = []
+        PurchaseFactory.create_batch(3, price=3.45, purchase_list=self.purchase_list)
+        expected_data = [{'count': 1,
+                          'current_count': 0,
+                          'id': 1,
+                          'name': 'purchase №0',
+                          'price': 3.45,
+                          'status': False},
+                         {'count': 1,
+                          'current_count': 0,
+                          'id': 2,
+                          'name': 'purchase №1',
+                          'price': 3.45,
+                          'status': False},
+                         {'count': 1,
+                          'current_count': 0,
+                          'id': 3,
+                          'name': 'purchase №2',
+                          'price': 3.45,
+                          'status': False}]
 
         url = reverse('purchase-manager:purchases', kwargs={
             GROUP_URL_KWARG: self.budget_group.id,
@@ -240,7 +257,8 @@ class PurchasesTestCase(BaseCase):
         self.login(self.username)
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.json(), expected_data)
+        self.assertEqual(response.json()['count'], 3)
+        self.assertEqual(response.json()['results'], expected_data)
 
     def test_create_new_purchase(self):
         name = 'first purchase'
@@ -263,9 +281,8 @@ class PurchasesTestCase(BaseCase):
             'price': price
         }
 
-        response = self.client.get(url, data=data)
+        response = self.client.post(url, data=data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.json(), expected_data)
 
         created_purchase = Purchase.objects.get(purchase_list=self.purchase_list)
         self.assertEqual(created_purchase.name, name)
@@ -283,7 +300,7 @@ class PurchasesTestCase(BaseCase):
         expected_data = {'name': ['This field is required.']}
 
         self.login(self.username)
-        response = self.client.get(url, data={})
+        response = self.client.post(url, data={})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.json(), expected_data)
 
@@ -293,7 +310,11 @@ class PurchasesTestCase(BaseCase):
         current_count = 1.25
         price = -6
 
-        expected_data = {}
+        expected_data = {
+            'count': ['Ensure this value is greater than or equal to 1.'],
+            'current_count': ['A valid integer is required.'],
+            'price': ['Ensure this value is greater than or equal to 0.']
+        }
 
         url = reverse('purchase-manager:purchases', kwargs={
             GROUP_URL_KWARG: self.budget_group.id,
@@ -309,6 +330,6 @@ class PurchasesTestCase(BaseCase):
             'price': price
         }
 
-        response = self.client.get(url, data=data)
+        response = self.client.post(url, data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json(), expected_data)
+        self.assertDictEqual(response.json(), expected_data)

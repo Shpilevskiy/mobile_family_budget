@@ -7,7 +7,7 @@ from factory import (
 
 from faker import Faker
 
-from purchaseManager.models import PurchaseList
+from purchaseManager.models import Purchase
 
 from purchaseManager.factorys.purchases_list_factory import PurchasesListFactory
 
@@ -16,7 +16,7 @@ fake = Faker()
 
 class PurchaseFactory(DjangoModelFactory):
     class Meta:
-        model = PurchaseList
+        model = Purchase
 
         django_get_or_create = ('name', 'count', 'current_count', 'price', 'status', 'purchase_list')
 
