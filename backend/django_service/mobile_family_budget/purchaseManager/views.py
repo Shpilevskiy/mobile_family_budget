@@ -1,12 +1,14 @@
 import json
 
-from django.http import HttpResponse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
 from rest_framework import generics
 from rest_framework import permissions
+from rest_framework import status
+from rest_framework.exceptions import NotFound
+from rest_framework.response import Response
 
 from account.models import BudgetGroup
 from account.permissions import IsGroupMember
@@ -43,6 +45,19 @@ class PurchasesListCreateApiView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         return Purchase.objects.participant(self.kwargs[PURCHASE_LIST_URL_KWARG])
+
+    def get(self, request, *args, **kwargs):
+        try:
+            return super().get(request, *args, **kwargs)
+        except PurchaseList.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
+
+    def post(self, request, *args, **kwargs):
+        try:
+            PurchaseList.objects.get(id=kwargs[PURCHASE_LIST_URL_KWARG])
+            return super().post(request, *args, **kwargs)
+        except PurchaseList.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
 
 # all views that are beneath this comment are deprecated
 

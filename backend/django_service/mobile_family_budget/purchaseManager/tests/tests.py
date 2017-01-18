@@ -228,6 +228,24 @@ class PurchasesTestCase(BaseCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+    def test_correct_response_for_not_exists_purchase_list(self):
+        url = reverse('purchase-manager:purchases', kwargs={
+            GROUP_URL_KWARG: self.budget_group.id,
+            PURCHASE_LIST_URL_KWARG: 56
+        })
+        expected_response = {"detail": "Not found."}
+
+        self.login(self.username)
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertDictEqual(response.json(), expected_response)
+
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertDictEqual(response.json(), expected_response)
+
+
     def test_get_purchases_information(self):
         PurchaseFactory.create_batch(3, price=3.45, purchase_list=self.purchase_list)
         expected_data = [{'count': 1,
