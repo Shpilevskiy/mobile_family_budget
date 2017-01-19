@@ -7,14 +7,14 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework import generics
 from rest_framework import permissions
 from rest_framework import status
-from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
 from account.models import BudgetGroup
 from account.permissions import IsGroupMember
 from mobile_family_budget.utils.ulr_kwarg_consts import (
     GROUP_URL_KWARG,
-    PURCHASE_LIST_URL_KWARG
+    PURCHASE_LIST_URL_KWARG,
+    PURCHASE_URL_KWARG
 )
 from .models import Purchase
 from .models import PurchaseList
@@ -47,17 +47,26 @@ class PurchasesListCreateApiView(generics.ListCreateAPIView):
         return Purchase.objects.participant(self.kwargs[PURCHASE_LIST_URL_KWARG])
 
     def get(self, request, *args, **kwargs):
-        try:
+        if PurchaseList.objects.filter(id=kwargs[PURCHASE_LIST_URL_KWARG]).exists():
             return super().get(request, *args, **kwargs)
-        except PurchaseList.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
+        return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Purchases list is not found."})
 
     def post(self, request, *args, **kwargs):
-        try:
-            PurchaseList.objects.get(id=kwargs[PURCHASE_LIST_URL_KWARG])
+        if PurchaseList.objects.filter(id=kwargs[PURCHASE_LIST_URL_KWARG]).exists():
             return super().post(request, *args, **kwargs)
-        except PurchaseList.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Not found."})
+        return Response(status=status.HTTP_404_NOT_FOUND, data={"detail": "Purchases list is not found."})
+
+
+class PurchaseRetrieveUpdateView(generics.RetrieveUpdateAPIView):
+    permission_classes = (permissions.IsAuthenticated, IsGroupMember)
+    serializer_class = PurchaseSerializer
+    lookup_url_kwarg = PURCHASE_URL_KWARG
+
+    def get_queryset(self):
+        return Purchase.objects.participant(
+            self.kwargs[PURCHASE_LIST_URL_KWARG],
+            self.kwargs[PURCHASE_URL_KWARG])
+
 
 # all views that are beneath this comment are deprecated
 

@@ -22,7 +22,7 @@ class PurchaseList(models.Model):
 
 class PurchaseManager(models.Manager):
     def participant(self, purchase_list_id, purchase_id=None):
-        purchase_list = PurchaseList.objects.get(id=purchase_list_id)
+        purchase_list = PurchaseList.objects.filter(id=purchase_list_id).first()
         if purchase_id:
             return Purchase.objects.filter(id=purchase_id, purchase_list=purchase_list)
         return Purchase.objects.filter(purchase_list_id=purchase_list)
