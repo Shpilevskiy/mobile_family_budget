@@ -4,7 +4,8 @@ from rest_framework.reverse import reverse
 from mobile_family_budget.tests.base import BaseCase
 from mobile_family_budget.utils.ulr_kwarg_consts import (
     GROUP_URL_KWARG,
-    PURCHASE_LIST_URL_KWARG
+    PURCHASE_LIST_URL_KWARG,
+    PURCHASE_URL_KWARG
 )
 
 from account.factorys.user_factory import UserFactory
@@ -231,9 +232,9 @@ class PurchasesTestCase(BaseCase):
     def test_correct_response_for_not_exists_purchase_list(self):
         url = reverse('purchase-manager:purchases', kwargs={
             GROUP_URL_KWARG: self.budget_group.id,
-            PURCHASE_LIST_URL_KWARG: 56
+            PURCHASE_LIST_URL_KWARG: PurchaseList.objects.latest('id').id + 1
         })
-        expected_response = {"detail": "Not found."}
+        expected_response = {"detail": "Purchases list is not found."}
 
         self.login(self.username)
 
@@ -245,27 +246,14 @@ class PurchasesTestCase(BaseCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertDictEqual(response.json(), expected_response)
 
-
     def test_get_purchases_information(self):
-        PurchaseFactory.create_batch(3, price=3.45, purchase_list=self.purchase_list)
-        expected_data = [{'count': 1,
-                          'current_count': 0,
-                          'id': 1,
-                          'name': 'purchase №0',
-                          'price': 3.45,
-                          'status': False},
-                         {'count': 1,
-                          'current_count': 0,
-                          'id': 2,
-                          'name': 'purchase №1',
-                          'price': 3.45,
-                          'status': False},
-                         {'count': 1,
-                          'current_count': 0,
-                          'id': 3,
-                          'name': 'purchase №2',
-                          'price': 3.45,
-                          'status': False}]
+        purchases = PurchaseFactory.create_batch(size=9, purchase_list=self.purchase_list)
+        expected_data = [{'count': purchase.count,
+                          'current_count': purchase.current_count,
+                          'id': purchase.id,
+                          'name': purchase.name,
+                          'price': purchase.price,
+                          'status': purchase.status} for purchase in purchases]
 
         url = reverse('purchase-manager:purchases', kwargs={
             GROUP_URL_KWARG: self.budget_group.id,
@@ -275,7 +263,7 @@ class PurchasesTestCase(BaseCase):
         self.login(self.username)
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.json()['count'], 3)
+        self.assertEqual(response.json()['count'], len(expected_data))
         self.assertEqual(response.json()['results'], expected_data)
 
     def test_create_new_purchase(self):
@@ -283,7 +271,6 @@ class PurchasesTestCase(BaseCase):
         count = 2
         current_count = 1
         price = 26.5
-        expected_data = []
 
         url = reverse('purchase-manager:purchases', kwargs={
             GROUP_URL_KWARG: self.budget_group.id,
@@ -351,3 +338,187 @@ class PurchasesTestCase(BaseCase):
         response = self.client.post(url, data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertDictEqual(response.json(), expected_data)
+
+
+class PurchaseTestCase(BaseCase):
+    def test_only_authorized_user_can_reach_endpoint(self):
+        purchase = PurchaseFactory(purchase_list=self.purchase_list)
+        url = reverse('purchase-manager:purchase', kwargs={
+            GROUP_URL_KWARG: self.budget_group.id,
+            PURCHASE_LIST_URL_KWARG: self.purchase_list.id,
+            PURCHASE_URL_KWARG: purchase.id
+        })
+        expected_error_message = {'detail': 'Authentication credentials were not provided.'}
+
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertDictEqual(response.json(), expected_error_message)
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertDictEqual(response.json(), expected_error_message)
+
+        self.login(self.username)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_only_group_member_can_reach_endpoint(self):
+        user = UserFactory()
+        purchase = PurchaseFactory(purchase_list=self.purchase_list)
+
+        url = reverse('purchase-manager:purchase', kwargs={
+            GROUP_URL_KWARG: self.budget_group.id,
+            PURCHASE_LIST_URL_KWARG: self.purchase_list.id,
+            PURCHASE_URL_KWARG: purchase.id
+        })
+
+        expected_error_message = {'detail': 'You do not have permission to perform this action.'}
+
+        self.login(user.username)
+
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertDictEqual(response.json(), expected_error_message)
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertDictEqual(response.json(), expected_error_message)
+
+        self.login(self.username)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_get_returns_correct_purchase(self):
+        purchases = PurchaseFactory.create_batch(5, purchase_list=self.purchase_list)
+        purchase = purchases[2]
+        url = reverse('purchase-manager:purchase', kwargs={
+            GROUP_URL_KWARG: self.budget_group.id,
+            PURCHASE_LIST_URL_KWARG: self.purchase_list.id,
+            PURCHASE_URL_KWARG: purchase.id
+        })
+
+        self.login(self.username)
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json()['count'], 1)
+        self.assertEqual(response.json(), {'id': purchase.id,
+                                                      'count': purchase.count,
+                                                      'name': purchase.name,
+                                                      'current_count': purchase.current_count,
+                                                      'price': purchase.price,
+                                                      'status': purchase.status,
+                                                      })
+
+    def test_update_is_updating(self):
+        old_purchase = PurchaseFactory(purchase_list=self.purchase_list)
+
+        url = reverse('purchase-manager:purchase', kwargs={
+            GROUP_URL_KWARG: self.budget_group.id,
+            PURCHASE_LIST_URL_KWARG: self.purchase_list.id,
+            PURCHASE_URL_KWARG: old_purchase.id
+        })
+
+        self.login(self.username)
+        data = {
+            'id': old_purchase.id,
+            'name': 'new {}'.format(old_purchase.name),
+            'count': old_purchase.count+1,
+            'current_count': old_purchase.count+1,
+            'price': old_purchase.price+105.42,
+            'status': True
+        }
+        response = self.client.put(url, data)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), data)
+
+        new_purchase = Purchase.objects.get(id=old_purchase.id)
+        self.assertEqual(new_purchase.name, data['name'])
+        self.assertEqual(new_purchase.count, data['count'])
+        self.assertEqual(new_purchase.current_count, data['current_count'])
+        self.assertEqual(new_purchase.price, data['price'])
+        self.assertEqual(new_purchase.status, data['status'])
+
+    def test_data_for_update_is_required(self):
+        purchase = PurchaseFactory(purchase_list=self.purchase_list)
+
+        url = reverse('purchase-manager:purchase', kwargs={
+            GROUP_URL_KWARG: self.budget_group.id,
+            PURCHASE_LIST_URL_KWARG: self.purchase_list.id,
+            PURCHASE_URL_KWARG: purchase.id
+        })
+
+        self.login(self.username)
+        response = self.client.put(url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json(), {'detail': 'at least one field is required'})
+
+    def test_data_for_update_is_validated(self):
+        purchase = PurchaseFactory(purchase_list=self.purchase_list)
+
+        data = {
+            'name': 'first purchase',
+            'count': -1,
+            'current_count': 1.25,
+            'price': -6,
+            'status': 123
+        }
+
+        expected_response = {
+            'count': ['Ensure this value is greater than or equal to 1.'],
+            'current_count': ['A valid integer is required.'],
+            'price': ['Ensure this value is greater than or equal to 0.'],
+            "status": ['\"123\" is not a valid boolean.']
+        }
+
+        url = reverse('purchase-manager:purchase', kwargs={
+            GROUP_URL_KWARG: self.budget_group.id,
+            PURCHASE_LIST_URL_KWARG: self.purchase_list.id,
+            PURCHASE_URL_KWARG: purchase.id
+        })
+
+        self.login(self.username)
+
+        response = self.client.put(url, data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertDictEqual(response.json(), expected_response)
+
+    def test_404_for_wrong_purchase_list_id(self):
+        url = reverse('purchase-manager:purchase', kwargs={
+            GROUP_URL_KWARG: self.budget_group.id,
+            PURCHASE_LIST_URL_KWARG: PurchaseList.objects.latest('id').id + 1,
+            PURCHASE_URL_KWARG: self.purchase_list.id
+        })
+        expected_response = {"detail": "Not found."}
+
+        self.login(self.username)
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertDictEqual(response.json(), expected_response)
+
+        response = self.client.put(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertDictEqual(response.json(), expected_response)
+
+    def test_404_for_wrong_purchase_id(self):
+        PurchaseFactory(purchase_list=self.purchase_list)
+
+        url = reverse('purchase-manager:purchase', kwargs={
+            GROUP_URL_KWARG: self.budget_group.id,
+            PURCHASE_LIST_URL_KWARG: self.purchase_list.id,
+            PURCHASE_URL_KWARG: Purchase.objects.latest('id').id + 1
+        })
+        expected_response = {"detail": "Not found."}
+
+        self.login(self.username)
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertDictEqual(response.json(), expected_response)
+
+        response = self.client.put(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertDictEqual(response.json(), expected_response)
