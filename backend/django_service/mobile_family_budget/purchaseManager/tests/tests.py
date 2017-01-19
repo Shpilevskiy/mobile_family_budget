@@ -403,12 +403,12 @@ class PurchaseTestCase(BaseCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.json()['count'], 1)
         self.assertEqual(response.json(), {'id': purchase.id,
-                                                      'count': purchase.count,
-                                                      'name': purchase.name,
-                                                      'current_count': purchase.current_count,
-                                                      'price': purchase.price,
-                                                      'status': purchase.status,
-                                                      })
+                                           'count': purchase.count,
+                                           'name': purchase.name,
+                                           'current_count': purchase.current_count,
+                                           'price': purchase.price,
+                                           'status': purchase.status,
+                                           })
 
     def test_update_is_updating(self):
         old_purchase = PurchaseFactory(purchase_list=self.purchase_list)
@@ -423,9 +423,9 @@ class PurchaseTestCase(BaseCase):
         data = {
             'id': old_purchase.id,
             'name': 'new {}'.format(old_purchase.name),
-            'count': old_purchase.count+1,
-            'current_count': old_purchase.count+1,
-            'price': old_purchase.price+105.42,
+            'count': old_purchase.count + 1,
+            'current_count': old_purchase.current_count + 1,
+            'price': old_purchase.price + 105.42,
             'status': True
         }
         response = self.client.put(url, data)
@@ -453,7 +453,50 @@ class PurchaseTestCase(BaseCase):
         response = self.client.put(url)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json(), {'detail': 'at least one field is required'})
+        self.assertEqual(response.json(), {'error': ['At least one field is required.']})
+
+    def test_current_count_cant_be_greater_than_count(self):
+        purchase = PurchaseFactory(count=2, current_count=0, purchase_list=self.purchase_list)
+
+        url = reverse('purchase-manager:purchase', kwargs={
+            GROUP_URL_KWARG: self.budget_group.id,
+            PURCHASE_LIST_URL_KWARG: self.purchase_list.id,
+            PURCHASE_URL_KWARG: purchase.id
+        })
+
+        data = {
+            'count': purchase.count,
+            'current_count': purchase.count + 1,
+        }
+
+        self.login(username=self.username)
+        response = self.client.put(url, data=data)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json(), {'error': 'current count cannot be greater than common count'})
+
+    def test_status_automatically_changed_to_true_if_current_count_equals_to_count(self):
+        purchase = PurchaseFactory(count=2, current_count=0, status=False, purchase_list=self.purchase_list)
+
+        url = reverse('purchase-manager:purchase', kwargs={
+            GROUP_URL_KWARG: self.budget_group.id,
+            PURCHASE_LIST_URL_KWARG: self.purchase_list.id,
+            PURCHASE_URL_KWARG: purchase.id
+        })
+
+        data = {
+            'count': purchase.count,
+            'current_count': purchase.count,
+        }
+
+        self.login(username=self.username)
+        response = self.client.put(url, data=data)
+
+        updated_purchase = Purchase.objects.get(id=purchase.id)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(updated_purchase.status, True)
+        self.assertEqual(updated_purchase.current_count, 2)
+        self.assertEqual(updated_purchase.count, 2)
 
     def test_data_for_update_is_validated(self):
         purchase = PurchaseFactory(purchase_list=self.purchase_list)
