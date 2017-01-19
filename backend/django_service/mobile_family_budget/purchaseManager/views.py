@@ -18,7 +18,11 @@ from mobile_family_budget.utils.ulr_kwarg_consts import (
 )
 from .models import Purchase
 from .models import PurchaseList
-from .serializers import PurchaseSerializer, PurchaseListSerializer
+from .serializers import (
+    PurchaseSerializer,
+    PurchaseListSerializer,
+    PurchaseUpdateSerializer
+)
 
 
 class PurchasesListsListCreateApiView(generics.ListCreateAPIView):
@@ -59,7 +63,7 @@ class PurchasesListCreateApiView(generics.ListCreateAPIView):
 
 class PurchaseRetrieveUpdateView(generics.RetrieveUpdateAPIView):
     permission_classes = (permissions.IsAuthenticated, IsGroupMember)
-    serializer_class = PurchaseSerializer
+    serializer_class = PurchaseUpdateSerializer
     lookup_url_kwarg = PURCHASE_URL_KWARG
 
     def get_queryset(self):
