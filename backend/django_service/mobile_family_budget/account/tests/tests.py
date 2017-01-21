@@ -195,8 +195,7 @@ class BudgetGroupTestCase(BaseCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        self.assertEqual(response.json()['count'], 1)
-        self.assertEqual(response.json()['results'], expected_result)
+        self.assertEqual(response.json(), expected_result)
 
     def test_update_is_updating(self):
         url = reverse('account:budget-group', kwargs={'group_id': self.budget_group.id})
@@ -204,7 +203,7 @@ class BudgetGroupTestCase(BaseCase):
         new_name = 'new {}'.format(self.budget_group.name)
 
         self.login(self.username)
-        response = self.client.post(url, data={'name': new_name})
+        response = self.client.put(url, data={'name': new_name})
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(new_name, BudgetGroup.objects.get(id=self.budget_group.id).name)
@@ -213,7 +212,7 @@ class BudgetGroupTestCase(BaseCase):
         url = reverse('account:budget-group', kwargs={'group_id': self.budget_group.id})
 
         self.login(self.username)
-        response = self.client.post(url)
+        response = self.client.put(url)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 

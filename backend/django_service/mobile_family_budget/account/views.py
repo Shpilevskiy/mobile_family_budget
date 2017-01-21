@@ -20,7 +20,7 @@ from account.serializers import (
     UserSerializer,
     BudgetGroupUserSerializer,
     BudgetGroupSerializer,
-    BudgetGroupCreateSerializer,
+    BudgetGroupCreateUpdateSerializer,
     AddUserToGroupSerializer,
     RefLinkSerializer
 )
@@ -135,16 +135,29 @@ class RefLinkRetrieveUpdateView(generics.RetrieveUpdateAPIView):
                          }, status=status.HTTP_200_OK)
 
 
+class BudgetGroupRetrieveUpdateView(generics.RetrieveUpdateAPIView):
+    permission_classes = (permissions.IsAuthenticated, IsGroupMember)
+    lookup_url_kwarg = GROUP_URL_KWARG
+
+    def get_queryset(self):
+        return BudgetGroup.objects.participant(self.request.user.id, self.kwargs[GROUP_URL_KWARG])
+
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return BudgetGroupSerializer
+        return BudgetGroupCreateUpdateSerializer
+
+
 class BudgetGroupsListCreateView(generics.ListCreateAPIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
-            return BudgetGroupCreateSerializer
+            return BudgetGroupCreateUpdateSerializer
         return BudgetGroupSerializer
 
-    def get_queryset(self, group_id=None):
-        return BudgetGroup.objects.participant(self.request.user.id, group_id)
+    def get_queryset(self):
+        return BudgetGroup.objects.participant(self.request.user.id)
 
     def post(self, request, *args, **kwargs):
         """

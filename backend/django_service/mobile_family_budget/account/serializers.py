@@ -66,8 +66,8 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
 
-class BudgetGroupCreateSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(max_length=120)
+class BudgetGroupCreateUpdateSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(max_length=30)
 
     class Meta:
         model = BudgetGroup
