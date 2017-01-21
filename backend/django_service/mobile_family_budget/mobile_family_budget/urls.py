@@ -17,8 +17,12 @@ from django.conf.urls import url
 from django.conf.urls import include
 from django.contrib import admin
 
+from account.views import UserCreateView
+
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^account/', include('account.urls', namespace='account')),
-    url(r'^purchases/', include('purchaseManager.urls', namespace='purchase-manager'))
+    url(r'^purchases/', include('purchaseManager.urls', namespace='purchase-manager')),
+    url(r'^api-auth/', (include('rest_framework.urls', namespace='rest_framework'))),
+    url('^api-register/$', UserCreateView.as_view(), name='registration')
 ]
