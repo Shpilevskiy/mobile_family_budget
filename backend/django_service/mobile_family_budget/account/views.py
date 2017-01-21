@@ -135,7 +135,7 @@ class RefLinkRetrieveUpdateView(generics.RetrieveUpdateAPIView):
                          }, status=status.HTTP_200_OK)
 
 
-class BudgetGroupListView(generics.ListCreateAPIView):
+class BudgetGroupsListCreateView(generics.ListCreateAPIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_serializer_class(self):
@@ -145,14 +145,6 @@ class BudgetGroupListView(generics.ListCreateAPIView):
 
     def get_queryset(self, group_id=None):
         return BudgetGroup.objects.participant(self.request.user.id, group_id)
-
-    def get(self, request, *args, **kwargs):
-        """
-        Retrieve user groups
-        """
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
 
     def post(self, request, *args, **kwargs):
         """
