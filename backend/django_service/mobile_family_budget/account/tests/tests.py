@@ -23,14 +23,14 @@ from purchaseManager.models import PurchaseList
 class AuthTestCase(APITestCase):
     def test_create_new_user(self):
         data = {'username': 'user', 'password': 'user_password', 'first_name': 'John Doe'}
-        response = self.client.post('/account/api-register/', data, format='json')
+        response = self.client.post('/api-register/', data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(User.objects.count(), 1)
         self.assertEqual(User.objects.get().username, 'user')
         self.assertEqual(User.objects.get().first_name, 'John Doe')
 
 
-class BudgetGroupTestCase(BaseCase):
+class BudgetGroupsTestCase(BaseCase):
     def test_only_authorized_user_can_reach_endpoint(self):
         url = reverse('account:budget-groups')
 
@@ -88,38 +88,50 @@ class BudgetGroupTestCase(BaseCase):
         self.assertEqual(BudgetGroup.objects.get(group_owner=user, name=group_name).users.get(), user)
 
     def test_user_can_get_his_groups(self):
-        group_names = ['my_group', 'another_my_group', 'more_groups_for_me']
+        user = UserFactory()
+        groups = BudgetGroupFactory.create_batch(3, group_owner=user, )
+
+        expected_result = [{'id': group.id,
+                            'name': group.name,
+                            'group_owner': {
+                                'username': user.username,
+                                'email': user.email,
+                                'first_name': user.first_name
+                            }} for group in groups]
 
         url = reverse('account:budget-groups')
 
-        user = UserFactory()
         self.login(user.username)
-        [BudgetGroupFactory(group_owner=user, name=group_name) for group_name in group_names]
 
         response = self.client.get(url)
-        for group in response.json():
-            self.assertTrue(group['name'] in group_names)
-            self.assertTrue('id' in group)
-            self.assertTrue('group_owner' in group)
-            self.assertEqual(group['group_owner']['username'], user.username)
-            self.assertEqual(group['group_owner']['email'], user.email)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        json_response = response.json()
+        self.assertEqual(json_response['count'], 3)
+        self.assertEqual(json_response['results'], expected_result)
 
     def test_user_can_get_only_his_groups(self):
-        user_groups = ['my_group', 'another_my_group', 'more_groups_for_me']
-        another_user_groups = ['not_my_group', 'and this group', 'and that group']
         url = reverse('account:budget-groups')
 
         user = UserFactory()
-        [BudgetGroupFactory(group_owner=user, name=group_name) for group_name in user_groups]
+        user_groups = BudgetGroupFactory.create_batch(3, group_owner=user)
 
         another_user = UserFactory()
-        [BudgetGroupFactory(group_owner=another_user, name=group_name) for group_name in another_user_groups]
+        BudgetGroupFactory.create_batch(3, group_owner=another_user)
+
+        expected_result = [{'id': group.id,
+                            'name': group.name,
+                            'group_owner': {
+                                'username': user.username,
+                                'email': user.email,
+                                'first_name': user.first_name
+                            }} for group in user_groups]
 
         self.login(user.username)
 
         response = self.client.get(url)
-        resp_groups = [group.get('name') for group in response.json()]
-        self.assertEqual(user_groups, resp_groups)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json()['count'], 3)
+        self.assertEqual(response.json()['results'], expected_result)
 
     def test_user_can_get_detail_information_about_users_in_group(self):
         url = reverse('account:budget-group-users', kwargs={GROUP_URL_KWARG: self.budget_group.id})
@@ -135,6 +147,75 @@ class BudgetGroupTestCase(BaseCase):
             self.assertTrue('first_name' in user)
             self.assertTrue('username' in user)
             self.assertTrue('email' in user)
+
+
+class BudgetGroupTestCase(BaseCase):
+    def test_only_authorized_user_can_reach_endpoint(self):
+        url = reverse('account:budget-group', kwargs={'group_id': self.budget_group.id})
+
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        self.login(self.username)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_only_group_member_can_reach_endpoint(self):
+        url = reverse('account:budget-group', kwargs={'group_id': self.budget_group.id})
+
+        self.login(UserFactory().username)
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        self.login(self.username)
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_get_returns_correct_budget_group(self):
+        url = reverse('account:budget-group', kwargs={'group_id': self.budget_group.id})
+
+        expected_result = {
+            'id': self.budget_group.id,
+            'name': self.budget_group.name,
+            'group_owner': {
+                'username': self.user.username,
+                'first_name': self.user.first_name,
+                'email': self.user.email
+            }
+        }
+
+        self.login(self.username)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.assertEqual(response.json()['count'], 1)
+        self.assertEqual(response.json()['results'], expected_result)
+
+    def test_update_is_updating(self):
+        url = reverse('account:budget-group', kwargs={'group_id': self.budget_group.id})
+
+        new_name = 'new {}'.format(self.budget_group.name)
+
+        self.login(self.username)
+        response = self.client.post(url, data={'name': new_name})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(new_name, BudgetGroup.objects.get(id=self.budget_group.id).name)
+
+    def test_update_data_required(self):
+        url = reverse('account:budget-group', kwargs={'group_id': self.budget_group.id})
+
+        self.login(self.username)
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
 class RefLinkTestCase(BaseCase):
