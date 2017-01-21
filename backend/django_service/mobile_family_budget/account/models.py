@@ -3,13 +3,15 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 
-from datetime import timedelta
+
+def default_expire_date():
+    return timezone.now() + timezone.timedelta(days=10)
 
 
 class RefLink(models.Model):
     link = models.CharField(max_length=120, unique=True)
     creation_date = models.DateField(default=timezone.now)
-    expire_date = models.DateField(default=timezone.now() + timedelta(days=10))
+    expire_date = models.DateField(default=default_expire_date)
     activation_count = models.PositiveIntegerField(default=3)
 
     def generate_new_link(self):
@@ -51,10 +53,9 @@ class BudgetGroup(models.Model):
         if self.invite_link:
             self.invite_link.delete()
 
-        ref_link = RefLink.objects.create(**{k: v for k, v in kwargs.items() if v is not None})
-        self.invite_link = ref_link
+        self.invite_link = RefLink.objects.create(**{k: v for k, v in kwargs.items() if v is not None})
         self.save()
-        ref_link.generate_new_link()
+        self.invite_link.generate_new_link()
 
     def is_member(self, user):
         """
