@@ -1,8 +1,8 @@
 from rest_framework.permissions import BasePermission
 
-from .models import BudgetGroup
+from account.models import BudgetGroup
 
-GROUP_URL_KWARG = 'group_id'
+from mobile_family_budget.utils.ulr_kwarg_consts import GROUP_URL_KWARG
 
 
 class IsGroupMember(BasePermission):

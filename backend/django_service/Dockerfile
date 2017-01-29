@@ -1,4 +1,4 @@
-FROM python:3.5
+FROM python:3.6
 
 ADD ./requirements.txt /api/requirements.txt
 ADD ./docker-entrypoint.sh /api/

@@ -1,5 +1,3 @@
-import uuid
-
 from django.contrib.auth.models import User
 
 from django.db import (
@@ -70,7 +68,7 @@ class BudgetGroupUsersListView(generics.ListAPIView):
         return group.users.all()
 
 
-class AddUserUpdateView(generics.UpdateAPIView):
+class BudgetGroupAddUserUpdateView(generics.UpdateAPIView):
     permission_classes = (permissions.IsAuthenticated,)
     serializer_class = AddUserToGroupSerializer
 
@@ -88,10 +86,9 @@ class AddUserUpdateView(generics.UpdateAPIView):
                 budget_group = BudgetGroup.objects.get(invite_link=ref_link)
                 if budget_group.is_member(request.user):
                     return get_error_response('user is already in this group')
-                budget_group.users.add(request.user)
                 try:
                     with transaction.atomic():
-                        budget_group.save()
+                        budget_group.users.add(request.user)
                         ref_link.activation_count -= 1
                         ref_link.save()
                 except IntegrityError:
@@ -179,7 +176,5 @@ class BudgetGroupsListCreateView(generics.ListCreateAPIView):
             # TODO: find way to handle errors like this
             return Response({'error': 'transaction error, try again'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        return Response({
-            'status': 'group {} successfully registered'.format(budget_group.name)
-        },
-            status=status.HTTP_201_CREATED)
+        return Response(serializer.data,
+                        status=status.HTTP_201_CREATED)

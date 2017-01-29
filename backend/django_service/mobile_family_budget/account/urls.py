@@ -3,7 +3,7 @@ from django.conf.urls import url
 from account.views import (
     BudgetGroupsListCreateView,
     BudgetGroupUsersListView,
-    AddUserUpdateView,
+    BudgetGroupAddUserUpdateView,
     RefLinkRetrieveUpdateView,
     BudgetGroupRetrieveUpdateView
 )
@@ -20,6 +20,6 @@ urlpatterns = [
     url(r'^budget-groups/(?P<{}>[0-9]+)/'.format(GROUP_URL_KWARG),
         BudgetGroupRetrieveUpdateView.as_view(), name='budget-group'),
 
-    url(r'^budget-groups/add-user/', AddUserUpdateView.as_view(), name='add-user'),
+    url(r'^budget-groups/add-user/', BudgetGroupAddUserUpdateView.as_view(), name='add-user'),
     url(r'^budget-groups/', BudgetGroupsListCreateView.as_view(), name='budget-groups'),
 ]
