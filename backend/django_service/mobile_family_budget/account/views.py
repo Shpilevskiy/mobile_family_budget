@@ -80,27 +80,30 @@ class BudgetGroupAddUserUpdateView(generics.UpdateAPIView):
         serializer.is_valid(raise_exception=True)
         try:
             ref_link = RefLink.objects.get(link=serializer.validated_data.get('link'))
-            if ref_link.activation_count <= 0 or timezone.datetime.date(timezone.now()) >= ref_link.expire_date:
-                return get_error_response('link was outdated')
-            try:
-                budget_group = BudgetGroup.objects.get(invite_link=ref_link)
-                if budget_group.is_member(request.user):
-                    return get_error_response('user is already in this group')
-                try:
-                    with transaction.atomic():
-                        budget_group.users.add(request.user)
-                        ref_link.activation_count -= 1
-                        ref_link.save()
-                except IntegrityError:
-                    # TODO: find way to handle errors like this
-                    return Response({'error': 'transaction error, try again'},
-                                    status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                return Response({'status': 'user successfully added to group {}'.format(budget_group.name)},
-                                status=status.HTTP_200_OK)
-            except BudgetGroup.DoesNotExist:
-                return get_error_response()
         except RefLink.DoesNotExist:
             return get_error_response()
+
+        if ref_link.activation_count <= 0 or timezone.datetime.date(timezone.now()) >= ref_link.expire_date:
+            return get_error_response('link was outdated')
+
+        try:
+            budget_group = BudgetGroup.objects.get(invite_link=ref_link)
+        except BudgetGroup.DoesNotExist:
+            return get_error_response()
+
+        if budget_group.is_member(request.user):
+            return get_error_response('user is already in this group')
+        try:
+            with transaction.atomic():
+                budget_group.users.add(request.user)
+                ref_link.activation_count -= 1
+                ref_link.save()
+        except IntegrityError:
+            # TODO: find way to handle errors like this
+            return Response({'error': 'transaction error, try again'},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'status': 'user successfully added to group {}'.format(budget_group.name)},
+                        status=status.HTTP_200_OK)
 
 
 class RefLinkRetrieveUpdateView(generics.RetrieveUpdateAPIView):
