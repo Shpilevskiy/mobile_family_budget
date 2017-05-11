@@ -16,13 +16,20 @@ Including another URLconf
 from django.conf.urls import url
 from django.conf.urls import include
 from django.contrib import admin
+from django.conf import settings
+from rest_framework_swagger.views import get_swagger_view
 
 from account.views import UserCreateView
 
+schema_view = get_swagger_view(title='Pastebin API')
+
 urlpatterns = [
-    url(r'^admin/', admin.site.urls),
-    url(r'^account/', include('account.urls', namespace='account')),
-    url(r'^purchases/', include('purchaseManager.urls', namespace='purchase-manager')),
-    url(r'^api-auth/', (include('rest_framework.urls', namespace='rest_framework'))),
-    url('^api-register/$', UserCreateView.as_view(), name='registration')
+    url(r'^api/admin/', admin.site.urls),
+    url(r'^api/account/', include('account.urls', namespace='account')),
+    url(r'^api/purchases/', include('purchaseManager.urls', namespace='purchase-manager')),
+    url(r'^api/api-auth/', (include('rest_framework.urls', namespace='rest_framework'))),
+    url('^api/api-register/$', UserCreateView.as_view(), name='registration')
 ]
+
+if settings.DEBUG:
+    urlpatterns.append(url(r'^api/swagger$', schema_view))

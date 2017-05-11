@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'account.apps.AccountConfig',
     'purchaseManager.apps.PurchasemanagerConfig',
+    'rest_framework_swagger',
 ]
 
 MIDDLEWARE = [
