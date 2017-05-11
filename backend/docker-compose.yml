@@ -7,6 +7,8 @@ services:
         - "5432:5432"
       volumes:
         - ./pgdata/:/var/lib/postgresql/data
+      env_file:
+        - ./db.env
 
     django_service:
       build: django_service
@@ -16,6 +18,8 @@ services:
         - "8000"
       links:
         - postgres:postgres
+      env_file:
+        - ./db.env
 
     nginx_service:
       restart: always
@@ -23,4 +27,6 @@ services:
       ports:
         - "8080:80"
       links:
-        - django_service:django
+        - django_service
+      depends_on:
+        - django_service
