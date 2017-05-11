@@ -14,6 +14,7 @@ services:
       build: django_service
       volumes:
         - ./django_service:/api
+        - ./static/:/api/mobile_family_budget/static
       expose:
         - "8000"
       links:
@@ -28,3 +29,7 @@ services:
         - "80:80"
       links:
         - django_service:django
+      volumes:
+        - ./static/:/static
+      depends_on:
+        - django_service
