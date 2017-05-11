@@ -82,9 +82,9 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': os.environ.get('DB_ENV_DB', 'postgres'),
         'USER': os.environ.get('DB_ENV_POSTGRES_USER', 'postgres'),
-        'PASSWORD': os.environ.get('DB_ENV_POSTGRES_PASSWORD', 'postgres'),
+        'PASSWORD': os.environ.get('DB_ENV_POSTGRES_PASSWORD', 'secretDemoPostgresPassword'),
         'HOST': os.environ.get('DB_PORT_5432_TCP_ADDR', 'postgres'),
-        'PORT': os.environ.get('DB_PORT_5432_TCP_PORT', 'secretDemoPostgresPassword'),
+        'PORT': os.environ.get('DB_PORT_5432_TCP_PORT', ''),
     },
 }
 
@@ -126,10 +126,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.10/howto/static-files/
 
 STATIC_URL = '/static/'
-
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "static"),
-]
+STATIC_ROOT = 'static/'
+# STATICFILES_DIRS = [
+#     os.path.join(BASE_DIR, "static"),
+# ]
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
