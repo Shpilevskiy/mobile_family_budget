@@ -1,5 +1,4 @@
 from django.contrib.auth.models import User
-from rest_framework.validators import UniqueValidator, UniqueTogetherValidator
 
 from .models import RefLink
 from .models import BudgetGroup
@@ -38,10 +37,11 @@ class RefLinkSerializer(serializers.ModelSerializer):
 
 class BudgetGroupSerializer(serializers.HyperlinkedModelSerializer):
     group_owner = BudgetGroupUserSerializer()
+    users = BudgetGroupUserSerializer(many=True, read_only=True)
 
     class Meta:
         model = BudgetGroup
-        fields = ('id', 'name', 'group_owner')
+        fields = ('id', 'name', 'group_owner', 'users')
 
 
 class UserSerializer(serializers.ModelSerializer):
