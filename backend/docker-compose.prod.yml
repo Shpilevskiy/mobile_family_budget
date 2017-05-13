@@ -1,0 +1,35 @@
+version: "2.0"
+
+services:
+    postgres:
+      image: postgres:9.4.4
+      expose:
+        - "5432"
+      volumes:
+        - ./pgdata/:/var/lib/postgresql/data
+      env_file:
+        - ./db.env
+
+    django_service:
+      build: django_service
+      volumes:
+        - ./django_service:/api
+        - ./static/:/api/mobile_family_budget/static
+      expose:
+        - "8000"
+      links:
+        - postgres:postgres
+      env_file:
+        - ./db.env
+
+    nginx_service:
+      restart: always
+      build: nginx_service
+      ports:
+        - "80:80"
+      links:
+        - django_service:django
+      volumes:
+        - ./static/:/static
+      depends_on:
+        - django_service
