@@ -40,6 +40,8 @@ def get_error_response(message='invalid link'):
 
 
 class SuccessView(generics.RetrieveAPIView):
+    permission_classes = (permissions.AllowAny,)
+
     def get(self, request, *args, **kwargs):
         return Response(data={'status': 'success'})
 
