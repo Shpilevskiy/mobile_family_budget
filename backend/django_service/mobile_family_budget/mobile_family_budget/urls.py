@@ -19,7 +19,10 @@ from django.contrib import admin
 from django.conf import settings
 from rest_framework_swagger.views import get_swagger_view
 
-from account.views import UserCreateView
+from account.views import (
+    UserCreateView,
+    SuccessView
+)
 
 schema_view = get_swagger_view(title='Pastebin API')
 
@@ -27,8 +30,9 @@ urlpatterns = [
     url(r'^api/admin/', admin.site.urls),
     url(r'^api/account/', include('account.urls', namespace='account')),
     url(r'^api/purchases/', include('purchaseManager.urls', namespace='purchase-manager')),
-    url(r'^api/api-auth/', (include('rest_framework.urls', namespace='rest_framework'))),
-    url('^api/api-register/$', UserCreateView.as_view(), name='registration')
+    url(r'^api/api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+    url('^api/api-register/$', UserCreateView.as_view(), name='registration'),
+    url('^api/success/$', SuccessView.as_view(), name='success')
 ]
 
 if settings.DEBUG:

@@ -39,6 +39,11 @@ def get_error_response(message='invalid link'):
     return Response({'error': '{}'.format(message)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+class SuccessView(generics.RetrieveAPIView):
+    def get(self, request, *args, **kwargs):
+        return Response(data={'status': 'success'})
+
+
 class UserCreateView(generics.CreateAPIView):
     model = User.objects.all()
     permission_classes = (permissions.AllowAny,)
